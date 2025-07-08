@@ -1,0 +1,36 @@
+html, body {
+    margin: 0;
+    padding: 0;
+    height: 100%;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    position: relative;
+    flex-direction: column;
+}
+
+svg {
+    width: 100vmin;
+    height:100vmin;
+    background-color: #222;
+    cursor: crosshair;
+}
+
+text {
+    font-size: calc(1.8vmin + 8px); /* Passt sich Bildschirmgröße an */
+    fill: white;
+    font-family: sans-serif;
+    text-anchor: middle;
+    dominant-baseline: middle;
+}
+
+.title {
+    position: absolute;
+    font-size: calc(1.8vmin + 8px);
+    top: 10px;
+    width: 100%;
+    text-align: center;
+    color: white;
+    font-family: sans-serif;
+    z-index: 10;
+}
