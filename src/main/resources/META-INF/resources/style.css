@@ -37,7 +37,7 @@ text {
 .players{
     position: absolute;
     font-size: calc(1.8vmin + 8px);
-    top: 30px;
+    top: 1230px;
     width: 100%;
     text-align: center;
     color: white;

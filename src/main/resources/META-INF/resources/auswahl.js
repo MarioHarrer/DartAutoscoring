@@ -37,10 +37,10 @@ document.addEventListener("DOMContentLoaded", () => {
             alert("Bitte wähle die Anzhal der Spieler aus")
             return;
         }
-        const baseUrl = startLink.getAttribute('href');
+        /*const baseUrl = startLink.getAttribute('href');
         const newUrl = `${baseUrl}?mode=${encodeURIComponent(selectedMode)}`;
         const newUrl2 = `${newUrl}&player=${encodeURIComponent(selectplayer)}`;
-        startLink.setAttribute('href', newUrl2);
+        startLink.setAttribute('href', newUrl2);*/
 
     });
 });

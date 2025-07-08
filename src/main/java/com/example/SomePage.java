@@ -11,19 +11,36 @@ import jakarta.ws.rs.core.MediaType;
 
 import static java.util.Objects.requireNonNull;
 
-@Path("/some-page")
+@Path("/spiel")
 public class SomePage {
 
     private final Template page;
+    private final Template match;
 
-    public SomePage(Template page) {
+
+    public SomePage(Template page, Template match) {
         this.page = requireNonNull(page, "page is required");
+        this.match = match;
     }
 
     @GET
     @Produces(MediaType.TEXT_HTML)
     public TemplateInstance get(@QueryParam("name") String name) {
-        return page.data("name", name);
+        return page.data("name", name).data("game", "lol");
+    }
+
+    @GET
+    @Path("/match")
+    @Produces(MediaType.TEXT_HTML)
+    public TemplateInstance getGame1(@QueryParam("name") String name) {
+        return match.data("game", "match");
+    }
+
+    @GET
+    @Path("/around-the-clock")
+    @Produces(MediaType.TEXT_HTML)
+    public TemplateInstance getGame2(@QueryParam("name") String name) {
+        return page.data("game", "around-the-clock");
     }
 
 }
