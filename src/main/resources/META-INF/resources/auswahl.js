@@ -39,7 +39,8 @@ document.addEventListener("DOMContentLoaded", () => {
         }
         const baseUrl = startLink.getAttribute('href');
         const newUrl = `${baseUrl}?mode=${encodeURIComponent(selectedMode)}`;
-        startLink.setAttribute('href', newUrl);
+        const newUrl2 = `${newUrl}&player=${encodeURIComponent(selectplayer)}`;
+        startLink.setAttribute('href', newUrl2);
 
     });
 });

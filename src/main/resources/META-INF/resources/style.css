@@ -24,13 +24,23 @@ text {
     dominant-baseline: middle;
 }
 
-.title {
+.gamemode {
     position: absolute;
     font-size: calc(1.8vmin + 8px);
-    top: 10px;
+    top: 30px;
     width: 100%;
     text-align: center;
     color: white;
     font-family: sans-serif;
-    z-index: 10;
+    left: -430px;
+}
+.players{
+    position: absolute;
+    font-size: calc(1.8vmin + 8px);
+    top: 30px;
+    width: 100%;
+    text-align: center;
+    color: white;
+    font-family: sans-serif;
+    right: -450px;
 }
