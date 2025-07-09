@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <title>Dartboard</title>
+    <style>
+        body {
+            font-family: sans-serif;
+            max-width: 600px;
+            margin: 2em auto;
+        }
+        form {
+            margin-bottom: 2em;
+        }
+        label {
+            display: block;
+            margin-top: 0.5em;
+        }
+        select[multiple] {
+            height: 6em;
+            width: 100%;
+        }
+    </style>
+</head>
+<body>
+
+<h1>Dartboard</h1>
+
+<h2>Neuen Spieler hinzufügen</h2>
+<form action="/dartboard/player" method="post">
+    <label>Spielername:</label>
+    <input type="text" name="name" required>
+    <button type="submit">Hinzufügen</button>
+</form>
+
+<h2>Match starten</h2>
+<form action="/dartboard/match" method="post">
+    <label>Spieler auswählen (1–4):</label>
+    <select name="players" multiple size="4" required>
+        {#for player in players}
+            <option value="{player.id}">{player.name}</option>
+        {/for}
+    </select>
+
+    <label>Modus:</label>
+    <select name="mode" required>
+        <option value="MODE_501">501</option>
+        <option value="MODE_AROUND_THE_CLOCK">Around the Clock</option>
+    </select>
+
+    <button type="submit">Match starten</button>
+</form>
+
+{#if match??}
+    <h2>Aktives Match</h2>
+    <p>Modus: {match.mode}</p>
+    <ul>
+        {#for playerId in match.playerIds}
+            <li>{playerMap.get(playerId).name} – Punktestand: {match.scores.get(playerId)}</li>
+        {/for}
+    </ul>
+{/if}
+
+</body>
+</html>
