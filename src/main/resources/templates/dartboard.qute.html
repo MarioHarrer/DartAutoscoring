@@ -21,6 +21,8 @@
             width: 100%;
         }
     </style>
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <script src="dartscheibe.js" defer></script>
 </head>
 <body>
 
@@ -43,22 +45,26 @@
     </select>
 
     <label>Modus:</label>
-    <select name="mode" required>
+    <select name="modeType" required>
         <option value="MODE_501">501</option>
         <option value="MODE_AROUND_THE_CLOCK">Around the Clock</option>
     </select>
+
 
     <button type="submit">Match starten</button>
 </form>
 
 {#if match??}
     <h2>Aktives Match</h2>
-    <p>Modus: {match.mode}</p>
+    <p>Modus: {match.mode.type}</>
+    <p>DoubleIn: {match.mode.doubleIn}</p>
+    <p>DoubleOut: {match.mode.doubleOut}</p>
     <ul>
         {#for playerId in match.playerIds}
             <li>{playerMap.get(playerId).name} – Punktestand: {match.scores.get(playerId)}</li>
         {/for}
     </ul>
+    <svg id="dartboard" viewBox="-250 -250 500 500"></svg>
 {/if}
 
 </body>

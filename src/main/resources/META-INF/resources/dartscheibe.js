@@ -60,6 +60,8 @@ function createRing(startR, endR, ringName) {
                 timer: 2000,
                 showConfirmButton: false
             });
+
+            // send throw to server
         });
         svg.appendChild(path);
     }

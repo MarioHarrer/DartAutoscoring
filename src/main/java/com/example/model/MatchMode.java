@@ -1,6 +1,14 @@
 package com.example.model;
 
-public enum MatchMode {
-    MODE_501,
-    MODE_AROUND_THE_CLOCK
+import lombok.AllArgsConstructor;
+import lombok.Getter;
+
+@AllArgsConstructor
+@Getter
+public class MatchMode {
+
+    private final MatchModeType type;
+    private final boolean doubleIn;
+    private final boolean doubleOut;
+
 }

@@ -1,6 +1,7 @@
 package com.example.resource;
 
 import com.example.model.MatchMode;
+import com.example.model.MatchModeType;
 import com.example.service.DartService;
 import io.quarkus.qute.Template;
 import io.quarkus.qute.TemplateInstance;
@@ -44,11 +45,22 @@ public class DartboardResource {
     @Path("/match")
     @Consumes(MediaType.APPLICATION_FORM_URLENCODED)
     public Response startMatch(@FormParam("players") List<UUID> playerIds,
-                               @FormParam("mode") MatchMode mode) {
+                               @FormParam("modeType") MatchModeType modeType) {
         if (playerIds.isEmpty() || playerIds.size() > 4) {
             throw new WebApplicationException("Bitte 1 bis 4 Spieler auswählen", 400);
         }
-        dartService.startNewMatch(playerIds, mode);
+
+        MatchMode matchMode = new MatchMode(modeType, false, false);
+
+        dartService.startNewMatch(playerIds, matchMode );
+        return Response.seeOther(URI.create("/dartboard")).build();
+    }
+
+    @POST
+    @Path("/throw")
+    public Response throwDart(@FormParam("playerId") UUID playerId,
+                               @FormParam("throw") int throwValue) {
+        //dartService.getMatch().getScores().put(playerId, throwValue);
         return Response.seeOther(URI.create("/dartboard")).build();
     }
 

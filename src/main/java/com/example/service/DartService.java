@@ -2,6 +2,7 @@ package com.example.service;
 
 import com.example.model.Match;
 import com.example.model.MatchMode;
+import com.example.model.MatchModeType;
 import com.example.model.Player;
 import jakarta.enterprise.context.ApplicationScoped;
 

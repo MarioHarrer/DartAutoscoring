@@ -21,7 +21,7 @@ public class Match {
         this.playerIds = playerIds;
         this.mode = mode;
 
-        int startScore = (mode == MatchMode.MODE_501) ? 501 : 0;
+        int startScore = (mode.getType() == MatchModeType.MODE_501) ? 501 : 0;
         for (UUID playerId : playerIds) {
             scores.put(playerId, startScore);
         }
