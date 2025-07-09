@@ -1,4 +1,4 @@
-html, body {
+body {
     margin: 0;
     padding: 0;
     height: 100%;
@@ -15,35 +15,6 @@ svg {
     height:100vmin;
     background-color: #222;
     cursor: crosshair;
-}
-
-text {
-    font-size: calc(1.8vmin + 8px); /* Passt sich Bildschirmgröße an */
-    fill: white;
-    font-family: sans-serif;
-    text-anchor: middle;
-    dominant-baseline: middle;
-}
-
-.gamemode {
-    position: absolute;
-    font-size: calc(1.8vmin + 8px);
-    top: 30px;
-    width: 100%;
-    text-align: center;
-    color: white;
-    font-family: sans-serif;
-    left: -430px;
-}
-.players{
-    position: absolute;
-    font-size: calc(1.8vmin + 8px);
-    top: 1230px;
-    width: 100%;
-    text-align: center;
-    color: white;
-    font-family: sans-serif;
-    right: -450px;
 }
 
 .switchhome {
@@ -65,3 +36,34 @@ text {
     border: 2px solid white;
     border-radius: 10px;
 }
+
+text {
+    font-size: calc(1.8vmin + 8px);
+    fill: white;
+    font-family: sans-serif;
+    text-anchor: middle;
+    dominant-baseline: middle;
+}
+/*
+.gamemode {
+    position: absolute;
+    font-size: calc(1.8vmin + 8px);
+    top: 30px;
+    width: 100%;
+    text-align: center;
+    color: white;
+    font-family: sans-serif;
+    left: -430px;
+}
+.players{
+    position: absolute;
+    font-size: calc(1.8vmin + 8px);
+    top: 1230px;
+    width: 100%;
+    text-align: center;
+    color: white;
+    font-family: sans-serif;
+    right: -450px;
+}*/
+
+

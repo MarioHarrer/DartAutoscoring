@@ -11,36 +11,45 @@ import jakarta.ws.rs.core.MediaType;
 
 import static java.util.Objects.requireNonNull;
 
-@Path("/spiel")
+@Path("/")
 public class SomePage {
 
     private final Template page;
     private final Template match;
+    private final Template around;
 
-
-    public SomePage(Template page, Template match) {
+    public SomePage(Template match, Template page, Template around) {
+        this.match = requireNonNull(match, "match is required");
         this.page = requireNonNull(page, "page is required");
-        this.match = match;
-    }
-
-    @GET
-    @Produces(MediaType.TEXT_HTML)
-    public TemplateInstance get(@QueryParam("name") String name) {
-        return page.data("name", name).data("game", "");
+        this.around = requireNonNull(around, "around is required");
     }
 
     @GET
     @Path("/match")
     @Produces(MediaType.TEXT_HTML)
-    public TemplateInstance getGame1(@QueryParam("name") String name) {
-        return match.data("game", "match");
+    public TemplateInstance getMatch() {
+        return match.data("mode", "match");
+    }
+
+    @GET
+    @Path("/match/spiel")
+    @Produces(MediaType.TEXT_HTML)
+    public TemplateInstance getMatchGame() {
+        return page.data("game", "match");
     }
 
     @GET
     @Path("/around-the-clock")
     @Produces(MediaType.TEXT_HTML)
-    public TemplateInstance getGame2(@QueryParam("name") String name) {
-        return page.data("game", "around-the-clock");
+    public TemplateInstance getAroundTheClock() {
+        return around.data("mode", "around-the-clock");
     }
 
+    @GET
+    @Path("/around-the-clock/spiel")
+    @Produces(MediaType.TEXT_HTML)
+    public TemplateInstance getAroundTheClockGame() {
+        return page.data("game", "around-the-clock");
+    }
 }
+
