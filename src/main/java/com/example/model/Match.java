@@ -1,6 +1,7 @@
 package com.example.model;
 
 import lombok.Getter;
+import lombok.Setter;
 
 import java.time.LocalDateTime;
 import java.util.HashMap;
@@ -16,10 +17,12 @@ public class Match {
     private final MatchMode mode;
     private final Map<UUID, Integer> scores = new HashMap<>();
     private final LocalDateTime startedAt = LocalDateTime.now();
+    private final GameState gameState;
 
     public Match(List<UUID> playerIds, MatchMode mode) {
         this.playerIds = playerIds;
         this.mode = mode;
+        this.gameState = new GameState(playerIds);
 
         int startScore = (mode.getType() == MatchModeType.MODE_501) ? 501 : 0;
         for (UUID playerId : playerIds) {

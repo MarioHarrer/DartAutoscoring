@@ -1,5 +1,6 @@
 package com.example.resource;
 
+import com.example.model.Match;
 import com.example.model.MatchMode;
 import com.example.model.MatchModeType;
 import com.example.service.DartService;
@@ -58,10 +59,21 @@ public class DartboardResource {
 
     @POST
     @Path("/throw")
-    public Response throwDart(@FormParam("playerId") UUID playerId,
+    /*public Response throwDart(@FormParam("playerId") UUID playerId,
                                @FormParam("throw") int throwValue) {
-        //dartService.getMatch().getScores().put(playerId, throwValue);
-        return Response.seeOther(URI.create("/dartboard")).build();
+        //dartService.getMatch().getScores().put(playerId, throwValue);*/
+    public Response throwDart(@FormParam("throw") int throwValue) {
+        try {
+            Match match = dartService.getMatch();
+            if (match == null) {
+                throw new WebApplicationException("Kein Spiel gestartet", 400);
+            }
+            dartService.processThrow(match.getGameState().getCurrentplayerId(), throwValue);
+            return Response.seeOther(URI.create("/dartboard")).build();
+        }catch (IllegalArgumentException e){
+            throw new WebApplicationException(e.getMessage(), 400);
+        }
+
     }
 
 }

@@ -28,7 +28,7 @@
 
 <h1>Dartboard</h1>
 
-<h2>Neuen Spieler hinzufügen</h2>
+<h2>Neuen Spieler hinzufügen
 <form action="/dartboard/player" method="post">
     <label>Spielername:</label>
     <input type="text" name="name" required>
@@ -59,13 +59,23 @@
     <p>Modus: {match.mode.type}</>
     <p>DoubleIn: {match.mode.doubleIn}</p>
     <p>DoubleOut: {match.mode.doubleOut}</p>
+    <p>Aktueller Spieler: {playerMap.get(match.gameState.currentplayerId).name}</p>
+    <p>Verbleibende Würfe: {match.gameState.throwsleft}</p>
     <ul>
         {#for playerId in match.playerIds}
-            <li>{playerMap.get(playerId).name} – Punktestand: {match.scores.get(playerId)}</li>
+            <li class="{playerId == match.gameState.currentplayerId ? 'active' : ''}">
+                {playerMap.get(playerId).name} – Punktestand: {match.scores.get(playerId)}
+            </li>
         {/for}
     </ul>
+
     <svg id="dartboard" viewBox="-250 -250 500 500"></svg>
 {/if}
+    {#if match?? && match.gameState?? && match.gameState.isGameover}
+        <div class="gewinner-Alert">
+            Gewinner: {playerMap.get(match.gameState.currentplayerId).name}!
+        </div>
+    {/if}
 
 </body>
 </html>
