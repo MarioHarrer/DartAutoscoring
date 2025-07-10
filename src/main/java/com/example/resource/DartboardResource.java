@@ -41,6 +41,12 @@ public class DartboardResource {
         return Response.seeOther(URI.create("/dartboard")).build();
     }
 
+    @POST
+    @Path(("/match/end"))
+    public Response endMatch() {
+        dartService.endMatch();
+        return Response.seeOther(URI.create("/dartboard")).build();
+    }
 
     @POST
     @Path("/match")

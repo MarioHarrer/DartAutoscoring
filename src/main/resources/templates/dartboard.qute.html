@@ -28,31 +28,33 @@
 
 <h1>Dartboard</h1>
 
-<h2>Neuen Spieler hinzufügen
-<form action="/dartboard/player" method="post">
-    <label>Spielername:</label>
-    <input type="text" name="name" required>
-    <button type="submit">Hinzufügen</button>
-</form>
+{#if !match??}
+    <h2>Neuen Spieler hinzufügen</h2>
+    <form action="/dartboard/player" method="post">
+        <label>Spielername:</label>
+        <input type="text" name="name" required>
+        <button type="submit">Hinzufügen</button>
+    </form>
 
-<h2>Match starten</h2>
-<form action="/dartboard/match" method="post">
-    <label>Spieler auswählen (1–4):</label>
-    <select name="players" multiple size="4" required>
-        {#for player in players}
-            <option value="{player.id}">{player.name}</option>
-        {/for}
-    </select>
+    <h2>Match starten</h2>
+    <form action="/dartboard/match" method="post">
+        <label>Spieler auswählen (1–4):</label>
+        <select name="players" multiple size="4" required>
+            {#for player in players}
+                <option value="{player.id}">{player.name}</option>
+            {/for}
+        </select>
 
-    <label>Modus:</label>
-    <select name="modeType" required>
-        <option value="MODE_501">501</option>
-        <option value="MODE_AROUND_THE_CLOCK">Around the Clock</option>
-    </select>
+        <label>Modus:</label>
+        <select name="modeType" required>
+            <option value="MODE_501">501</option>
+            <option value="MODE_AROUND_THE_CLOCK">Around the Clock</option>
+        </select>
 
+        <button type="submit">Match starten</button>
+    </form>
+{/if}
 
-    <button type="submit">Match starten</button>
-</form>
 
 {#if match??}
     <h2>Aktives Match</h2>
@@ -70,12 +72,18 @@
     </ul>
 
     <svg id="dartboard" viewBox="-250 -250 500 500"></svg>
-{/if}
     {#if match?? && match.gameState?? && match.gameState.isGameover}
         <div class="gewinner-Alert">
             Gewinner: {playerMap.get(match.gameState.currentplayerId).name}!
         </div>
     {/if}
+
+    <form action="/dartboard/match/end" method="post" style="margin-top: 20px;">
+        <button type="submit">Match beenden</button>
+    </form>
+{/if}
+
+
 
 </body>
 </html>

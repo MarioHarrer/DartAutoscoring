@@ -89,4 +89,9 @@ public class DartService {
         gamestate.setCurrentplayerId(nextPlayerId);
         gamestate.setCurrentplayerIndex(nextPlayerIndex);
     }
+    public void endMatch(){
+        if(this.match != null){
+            this.match = null;
+        }
+    }
 }
