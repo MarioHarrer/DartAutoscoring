@@ -8,7 +8,8 @@ import lombok.Getter;
 public class MatchMode {
 
     private final MatchModeType type;
-    private final boolean doubleIn;
-    private final boolean doubleOut;
+    private final StartMode startMode;
+    private final EndMode endMode;
+
 
 }

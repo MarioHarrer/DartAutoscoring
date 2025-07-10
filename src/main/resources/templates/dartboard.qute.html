@@ -20,6 +20,30 @@
             height: 6em;
             width: 100%;
         }
+        #modeConfigOptions {
+            margin-top: 2em;
+            padding: 1em;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+        }
+
+        .modeConfig {
+            margin: 1em 0;
+        }
+
+        #configureButton {
+            margin: 1em 0;
+        }
+
+        #startMatchButton {
+            margin-top: 1em;
+        }
+
+        .modeConfig label {
+            display: inline-block;
+            margin-right: 2em;
+        }
+
     </style>
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     <script src="dartscheibe.js" defer></script>
@@ -36,7 +60,7 @@
         <button type="submit">Hinzufügen</button>
     </form>
 
-    <h2>Match starten</h2>
+    <h2>Match konfigurieren</h2>
     <form action="/dartboard/match" method="post">
         <label>Spieler auswählen (1–4):</label>
         <select name="players" multiple size="4" required>
@@ -46,21 +70,52 @@
         </select>
 
         <label>Modus:</label>
-        <select name="modeType" required>
+        <select name="modeType" id="modeSelect" required>
             <option value="MODE_501">501</option>
             <option value="MODE_AROUND_THE_CLOCK">Around the Clock</option>
         </select>
 
-        <button type="submit">Match starten</button>
+        <button type="button" id="configureButton">Modus konfigurieren</button>
+
+        <div id="modeConfigOptions" style="display: none;">
+            <div id="mode501Config" class="modeConfig">
+                <h3>501 Einstellungen</h3>
+                <div class="modeConfig">
+                    <h4>Startmodus</h4>
+                    <select name="startMode" required>
+                        <option value="STRAIGHT_IN">Straight In</option>
+                        <option value="DOUBLE_IN">Double In</option>
+                        <option value="MASTER_IN">Master In</option>
+                    </select>
+                </div>
+
+                <div class="modeConfig">
+                    <h4>Beendungsmodus</h4>
+                    <select name="endMode" required>
+                        <option value="STRAIGHT_OUT">Straight Out</option>
+                        <option value="DOUBLE_OUT">Double Out</option>
+                        <option value="MASTER_OUT">Master Out</option>
+                    </select>
+                </div>
+            </div>
+
+            <div id="clockConfig" class="modeConfig" style="display: none;">
+                <h3>Around the Clock Einstellungen</h3>
+            </div>
+
+
+            <button type="submit" id="startMatchButton">Match starten</button>
+        </div>
     </form>
+
 {/if}
 
 
 {#if match??}
     <h2>Aktives Match</h2>
-    <p>Modus: {match.mode.type}</>
-    <p>DoubleIn: {match.mode.doubleIn}</p>
-    <p>DoubleOut: {match.mode.doubleOut}</p>
+    <p>Modus: {match.mode.type}</p>
+    <p>Startmodus: {match.mode.startMode}</p>
+    <p>Beendungsmodus: {match.mode.endMode}</p>
     <p>Aktueller Spieler: {playerMap.get(match.gameState.currentplayerId).name}</p>
     <p>Verbleibende Würfe: {match.gameState.throwsleft}</p>
     <ul>
@@ -72,15 +127,15 @@
     </ul>
 
     <svg id="dartboard" viewBox="-250 -250 500 500"></svg>
-    {#if match?? && match.gameState?? && match.gameState.isGameover}
+    <form action="/dartboard/match/end" method="post" style="margin-top: 20px;">
+        <button type="submit">Match beenden</button>
+    </form>
+
+    {#if match.gameState.isGameover}
         <div class="gewinner-Alert">
             Gewinner: {playerMap.get(match.gameState.currentplayerId).name}!
         </div>
     {/if}
-
-    <form action="/dartboard/match/end" method="post" style="margin-top: 20px;">
-        <button type="submit">Match beenden</button>
-    </form>
 {/if}
 
 
