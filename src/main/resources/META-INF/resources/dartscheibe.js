@@ -61,7 +61,7 @@ function createRing(startR, endR, ringName) {
                 showConfirmButton: false
             });
 
-            // send throw to server
+            sendThrow(score);
         });
         svg.appendChild(path);
     }
@@ -90,6 +90,7 @@ bull1.addEventListener("click", () => {
         timer: 2000,
         showConfirmButton: false
     });
+    sendThrow(25);
 });
 svg.appendChild(bull1);
 
@@ -110,6 +111,7 @@ bull2.addEventListener("click", () => {
         timer: 2000,
         showConfirmButton: false
     });
+    sendThrow(50);
 });
 svg.appendChild(bull2);
 
@@ -122,4 +124,33 @@ for (let i = 0; i < 20; i++) {
     label.setAttribute("y", y);
     label.textContent = sectorNumbers[i];
     svg.appendChild(label);
+}
+
+async function sendThrow(score) {
+    try{
+        const response = await fetch("/dartboard/throw", {
+            method: "POST",
+            headers: {
+                'Content-Type': 'application/x-www-form-urlencoded',
+            },
+            body: `throw=${score}`
+        });
+        if(response.ok) {
+            setTimeout(() =>
+            window.location.reload(), 2000)
+        }else{
+            Swal.fire({
+                title: "Error",
+                text: "Something went wrong",
+                icon: 'error',
+                toast: true,
+                position: 'top-end',
+                timer: 2000,
+                showConfirmButton: false
+            })
+        }
+    }catch (error){
+        console.error("Fehler bei, saenden des Wurfes");
+    }
+
 }
