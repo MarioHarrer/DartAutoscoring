@@ -1,11 +1,9 @@
-
 document.addEventListener('DOMContentLoaded', function() {
     const configureButton = document.getElementById('configureButton');
     const modeConfigOptions = document.getElementById('modeConfigOptions');
     const modeSelect = document.getElementById('modeSelect');
     const mode501Config = document.getElementById('mode501Config');
     const clockConfig = document.getElementById('clockConfig');
-
 
     configureButton.addEventListener('click', function() {
         modeConfigOptions.style.display = 'block';
@@ -23,7 +21,6 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     }
 });
-
 
 const sectorAngles = Array.from({ length: 20 }, (_, i) => i * 18 - 9);
 const sectorNumbers = [20, 1, 18, 4, 13, 6, 10, 15, 2, 17, 3, 19, 7, 16, 8, 11, 14, 9, 12, 5];
@@ -54,33 +51,39 @@ function createRing(startR, endR, ringName) {
         Z`;
         path.setAttribute("d", d);
 
-        // Farbe je nach Ringtyp
         let fill;
         if (ringName === "double" || ringName === "triple") {
-            fill = (i % 2 === 0) ? "#c00" : "#0c0"; // Rot / Grün
+            fill = (i % 2 === 0) ? "#c00" : "#0c0";
         } else if (ringName === "single_outer" || ringName === "single_inner") {
-            fill = (i % 2 === 0) ? "#000" : "#d4af7f"; // Schwarz / Beige (Goldbraun)
+            fill = (i % 2 === 0) ? "#000" : "#d4af7f";
         }
 
         path.setAttribute("fill", fill);
         path.setAttribute("stroke", "#fff");
         path.setAttribute("data-score", ringName + "-" + sectorNumbers[i]);
+
         path.addEventListener("click", () => {
             const raw = path.getAttribute("data-score");
             const [zone, num] = raw.split("-");
-            let score = parseInt(num);
+            const score = parseInt(num);
+            let isDouble = false;
+            let isTriple = false;
+            let multiplier = 1;
             let zoneLabel = "Single";
+
             if (zone === "double") {
-                score *= 2;
+                isDouble = true;
+                multiplier = 2;
                 zoneLabel = "Double";
             } else if (zone === "triple") {
-                score *= 3;
+                isTriple = true;
+                multiplier = 3;
                 zoneLabel = "Triple";
             }
 
             Swal.fire({
                 title: `${zoneLabel} ${num}`,
-                text: `${score} points`,
+                text: `${score * multiplier} Punkte`,
                 icon: 'success',
                 toast: true,
                 position: 'top-end',
@@ -88,13 +91,13 @@ function createRing(startR, endR, ringName) {
                 showConfirmButton: false
             });
 
-            sendThrow(score);
+            sendThrow(score, isDouble, isTriple);
         });
         svg.appendChild(path);
     }
 }
 
-// Rings (außen nach innen)
+// Ringe (außen nach innen)
 createRing(170, 190, "double");
 createRing(100, 120, "triple");
 createRing(120, 170, "single_outer");
@@ -110,14 +113,14 @@ bull1.setAttribute("data-score", "bull-25");
 bull1.addEventListener("click", () => {
     Swal.fire({
         title: "Outer Bull",
-        text: "25 points",
+        text: "25 Punkte",
         icon: 'success',
         toast: true,
         position: 'top-end',
         timer: 2000,
         showConfirmButton: false
     });
-    sendThrow(25);
+    sendThrow(25, false, false);
 });
 svg.appendChild(bull1);
 
@@ -131,14 +134,14 @@ bull2.setAttribute("data-score", "bull-50");
 bull2.addEventListener("click", () => {
     Swal.fire({
         title: "Bullseye!",
-        text: "50 points",
+        text: "50 Punkte",
         icon: 'success',
         toast: true,
         position: 'top-end',
         timer: 2000,
         showConfirmButton: false
     });
-    sendThrow(50);
+    sendThrow(50, true, false); // Bullseye wird als Double behandelt
 });
 svg.appendChild(bull2);
 
@@ -153,31 +156,35 @@ for (let i = 0; i < 20; i++) {
     svg.appendChild(label);
 }
 
-async function sendThrow(score) {
-    try{
+async function sendThrow(score, isDouble = false, isTriple = false) {
+    try {
+        const formData = new URLSearchParams();
+        formData.append('score', score);
+        formData.append('isDouble', isDouble);
+        formData.append('isTriple', isTriple);
+
         const response = await fetch("/dartboard/throw", {
             method: "POST",
             headers: {
                 'Content-Type': 'application/x-www-form-urlencoded',
             },
-            body: `throw=${score}`
+            body: formData
         });
+
         if(response.ok) {
-            setTimeout(() =>
-            window.location.reload(), 2000)
-        }else{
+            setTimeout(() => window.location.reload(), 2000);
+        } else {
             Swal.fire({
                 title: "Error",
-                text: "Something went wrong",
+                text: "Etwas ist schief gelaufen",
                 icon: 'error',
                 toast: true,
                 position: 'top-end',
                 timer: 2000,
                 showConfirmButton: false
-            })
+            });
         }
-    }catch (error){
-        console.error("Fehler bei, saenden des Wurfes");
+    } catch (error) {
+        console.error("Fehler beim Senden des Wurfes");
     }
-
 }

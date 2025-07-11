@@ -66,18 +66,18 @@ public class DartboardResource {
 
     @POST
     @Path("/throw")
-    /*public Response throwDart(@FormParam("playerId") UUID playerId,
-                               @FormParam("throw") int throwValue) {
-        //dartService.getMatch().getScores().put(playerId, throwValue);*/
-    public Response throwDart(@FormParam("throw") int throwValue) {
+    public Response throwDart(@FormParam("score") int score,
+                              @FormParam("isDouble") boolean isDouble,
+                              @FormParam("isTriple") boolean isTriple) {
         try {
             Match match = dartService.getMatch();
             if (match == null) {
                 throw new WebApplicationException("Kein Spiel gestartet", 400);
             }
+            ThrowResult throwValue = new ThrowResult(score, isDouble, isTriple);
             dartService.processThrow(match.getGameState().getCurrentplayerId(), throwValue);
             return Response.seeOther(URI.create("/dartboard")).build();
-        }catch (IllegalArgumentException e){
+        } catch (IllegalArgumentException e) {
             throw new WebApplicationException(e.getMessage(), 400);
         }
 

@@ -36,19 +36,31 @@ public class DartService {
         return match;
     }
 
-    public void processThrow(UUID playerId, int score) {
+    public void processThrow(UUID playerId, ThrowResult throwResult) {
         Match currentMatch = getMatch();
         GameState gameState = currentMatch.getGameState();
 
-        if(!(isValidThrow(playerId, score))){
+
+        if(!(isValidThrow(playerId, throwResult))){
             throw new IllegalArgumentException("Invalid throw");
         }
-        int currentScore = currentMatch.getScores().get(playerId);
-        int newScore = currentScore - score;
 
-        if(newScore == 0){
-            currentMatch.getScores().put(playerId, newScore);
-            gameState.setGameover(true);
+        if(firstThrow(playerId) && !validStartThrow(throwResult)){
+            gameState.setThrowsleft(gameState.getThrowsleft() - 1);
+            if(gameState.getThrowsleft() == 0){
+                nextTurn();
+            }
+            return;
+        }
+
+        int currentScore = currentMatch.getScores().get(playerId);
+        int newScore = currentScore - throwResult.getScore();
+
+        if(newScore == 0 && !validEndThrow(throwResult)){
+            gameState.setThrowsleft(gameState.getThrowsleft() - 1);
+            if(gameState.getThrowsleft() == 0){
+                nextTurn();
+            }
             return;
         }
 
@@ -57,6 +69,10 @@ public class DartService {
         } else {
             currentMatch.getScores().put(playerId, newScore);
             gameState.setThrowsleft(gameState.getThrowsleft() - 1);
+
+            if(newScore == 0){
+                gameState.setGameover(true);
+            }
         }
 
         if(gameState.getThrowsleft() == 0){
@@ -64,7 +80,7 @@ public class DartService {
         }
     }
 
-    private boolean isValidThrow(UUID playerId, int score){
+    private boolean isValidThrow(UUID playerId, ThrowResult throwResult){
         GameState gamestate = match.getGameState();
 
         if(!(playerId.equals(gamestate.getCurrentplayerId()))){
@@ -90,9 +106,39 @@ public class DartService {
         gamestate.setCurrentplayerIndex(nextPlayerIndex);
     }
 
-    public void endMatch(){
-        if(this.match != null){
+    private boolean firstThrow(UUID playerId){
+        return match.getScores().get(playerId) == 501;
+    }
+
+    private boolean validStartThrow(ThrowResult throwResult) {
+        switch (match.getMode().getStartMode()) {
+            case STRAIGHT_IN:
+                return true;
+            case DOUBLE_IN:
+                return throwResult.isDouble();
+            case MASTER_IN:
+                return throwResult.isTriple() || throwResult.isDouble();
+            default:
+                return true;
+        }
+    }
+    private boolean validEndThrow(ThrowResult throwResult) {
+        switch(match.getMode().getEndMode()){
+            case STRAIGHT_OUT:
+                return true;
+            case DOUBLE_OUT:
+                return throwResult.isDouble();
+            case MASTER_OUT:
+                return throwResult.isTriple() || throwResult.isDouble();
+            default:
+                return true;
+        }
+    }
+
+    public void endMatch() {
+        if (this.match != null) {
             this.match = null;
         }
     }
+
 }
