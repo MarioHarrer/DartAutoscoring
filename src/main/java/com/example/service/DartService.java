@@ -58,7 +58,7 @@ public class DartService {
 
         if(newScore == 0 && !validEndThrow(throwResult)){
             gameState.setThrowsleft(gameState.getThrowsleft() - 1);
-            if(gameState.getThrowsleft() == 0){
+            if(gameState.getThrowsleft() == 0 && !gameState.isGameover()){
                 nextTurn();
             }
             return;
@@ -75,7 +75,7 @@ public class DartService {
             }
         }
 
-        if(gameState.getThrowsleft() == 0){
+        if(gameState.getThrowsleft() == 0 && !gameState.isGameover()){
             nextTurn();
         }
     }
