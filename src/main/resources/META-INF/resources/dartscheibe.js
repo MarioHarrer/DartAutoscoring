@@ -168,6 +168,6 @@ async function sendThrow(score, isDouble = false, isTriple = false) {
             });
         }
     } catch (error) {
-        console.error("Fehler beim Senden des Wurfes");
+        console.error("Fehler beim Senden des Wurfes", error);
     }
 }
