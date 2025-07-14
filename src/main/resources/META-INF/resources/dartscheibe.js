@@ -59,17 +59,45 @@ function createRing(startR, endR, ringName) {
                 zoneLabel = "Triple";
             }
 
-            Swal.fire({
-                title: `${zoneLabel} ${num}`,
-                text: `${score * multiplier} Punkte`,
-                icon: 'success',
-                toast: true,
-                position: 'top-end',
-                timer: 2000,
-                showConfirmButton: false
-            });
+            const startMode = document.querySelector('p[startmode]').getAttribute('startmode');
+            const currentScore = parseInt(document.querySelector('li.active').textContent.split('Punktestand: ')[1]);
 
-            sendThrow(score, isDouble, isTriple);
+            if (startMode === 'DOUBLE_IN' && currentScore === 501) {
+                if (!isDouble && score !== 25 && score !== 50) {
+                    Swal.fire({
+                        title: "Ungültiger Wurf",
+                        text: "Wirf Double oder Bull's Eye",
+                        icon: 'error',
+                        toast: true,
+                        position: 'top-end',
+                        timer: 2000,
+                        showConfirmButton: false
+                    });
+                    sendThrow(0, false, false);
+                } else {
+                    Swal.fire({
+                        title: `${zoneLabel} ${num}`,
+                        text: `${score * multiplier} Punkte`,
+                        icon: 'success',
+                        toast: true,
+                        position: 'top-end',
+                        timer: 2000,
+                        showConfirmButton: false
+                    });
+                    sendThrow(score, isDouble, isTriple);
+                }
+            } else {
+                Swal.fire({
+                    title: `${zoneLabel} ${num}`,
+                    text: `${score * multiplier} Punkte`,
+                    icon: 'success',
+                    toast: true,
+                    position: 'top-end',
+                    timer: 2000,
+                    showConfirmButton: false
+                });
+                sendThrow(score, isDouble, isTriple);
+            }
         });
         svg.appendChild(path);
     }
@@ -88,17 +116,37 @@ bull1.setAttribute("cy", "0");
 bull1.setAttribute("r", "20");
 bull1.setAttribute("fill", "green");
 bull1.setAttribute("data-score", "bull-25");
+
 bull1.addEventListener("click", () => {
-    Swal.fire({
-        title: "Outer Bull",
-        text: "25 Punkte",
-        icon: 'success',
-        toast: true,
-        position: 'top-end',
-        timer: 2000,
-        showConfirmButton: false
-    });
-    sendThrow(25, false, false);
+
+    const startMode = document.querySelector('p[startmode]').getAttribute('startmode');
+    const currentScore = parseInt(document.querySelector('li.active').textContent.split('Punktestand: ')[1]);
+
+
+    if (startMode === 'DOUBLE_IN' && currentScore === 501) {
+        Swal.fire({
+            title: "Ungültiger Wurf",
+            text: "Wirf Double oder Bull's Eye",
+            icon: 'error',
+            toast: true,
+            position: 'top-end',
+            timer: 2000,
+            showConfirmButton: false
+        });
+        sendThrow(0, false, false);
+    }
+    else{
+        Swal.fire({
+            title: "Outer Bull",
+            text: "25 Punkte",
+            icon: 'success',
+            toast: true,
+            position: 'top-end',
+            timer: 2000,
+            showConfirmButton: false
+        });
+        sendThrow(25, false, false);
+    }
 });
 svg.appendChild(bull1);
 
@@ -119,7 +167,7 @@ bull2.addEventListener("click", () => {
         timer: 2000,
         showConfirmButton: false
     });
-    sendThrow(50, true, false); // Bullseye wird als Double behandelt
+    sendThrow(50, true, false);
 });
 svg.appendChild(bull2);
 

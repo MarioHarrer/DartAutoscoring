@@ -12,13 +12,18 @@ public class ThrowResult {
 
     public ThrowResult(int score, boolean isDouble, boolean isTriple) {
 
-        int finalScore = score;
-        if (isDouble) {
-            finalScore *= 2;
-        } else if (isTriple) {
-            finalScore *= 3;
+        if(score == 50){
+            this.score = 50;
         }
-        this.score = finalScore;
+        else{
+            int finalScore = score;
+            if (isDouble) {
+                finalScore *= 2;
+            } else if (isTriple) {
+                finalScore *= 3;
+            }
+            this.score = finalScore;
+        }
         this.isDouble = isDouble;
         this.isTriple = isTriple;
     }
