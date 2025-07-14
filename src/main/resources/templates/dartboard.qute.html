@@ -46,13 +46,14 @@
 
     </style>
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
-    <script src="dartscheibe.js" defer></script>
+
 </head>
 <body>
 
 <h1>Dartboard</h1>
 
 {#if !match??}
+    <script src="setup.js" defer></script>
     <h2>Neuen Spieler hinzufügen</h2>
     <form action="/dartboard/player" method="post">
         <label>Spielername:</label>
@@ -112,6 +113,7 @@
 
 
 {#if match??}
+    <script src="dartscheibe.js" defer></script>
     <h2>Aktives Match</h2>
     <p>Modus: {match.mode.type}</p>
     <p>Startmodus: {match.mode.startMode}</p>

@@ -1,26 +1,4 @@
-document.addEventListener('DOMContentLoaded', function() {
-    const configureButton = document.getElementById('configureButton');
-    const modeConfigOptions = document.getElementById('modeConfigOptions');
-    const modeSelect = document.getElementById('modeSelect');
-    const mode501Config = document.getElementById('mode501Config');
-    const clockConfig = document.getElementById('clockConfig');
 
-    configureButton.addEventListener('click', function() {
-        modeConfigOptions.style.display = 'block';
-        updateModeConfig();
-    });
-
-    function updateModeConfig() {
-        const selectedMode = modeSelect.value;
-        if (selectedMode === 'MODE_501') {
-            mode501Config.style.display = 'block';
-            clockConfig.style.display = 'none';
-        } else {
-            mode501Config.style.display = 'none';
-            clockConfig.style.display = 'block';
-        }
-    }
-});
 
 const sectorAngles = Array.from({ length: 20 }, (_, i) => i * 18 - 9);
 const sectorNumbers = [20, 1, 18, 4, 13, 6, 10, 15, 2, 17, 3, 19, 7, 16, 8, 11, 14, 9, 12, 5];
@@ -163,7 +141,12 @@ async function sendThrow(score, isDouble = false, isTriple = false) {
         formData.append('isDouble', isDouble);
         formData.append('isTriple', isTriple);
 
-        const response = await fetch("/dartboard/throw", {
+
+        const baseUrl = window.location.origin.includes('localhost')
+            ? 'http://localhost:8080'
+            : window.location.origin;
+
+        const response = await fetch(`${baseUrl}/dartboard/throw`, {
             method: "POST",
             headers: {
                 'Content-Type': 'application/x-www-form-urlencoded',
