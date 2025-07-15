@@ -63,7 +63,7 @@ function createRing(startR, endR, ringName) {
             const currentScore = parseInt(document.querySelector('li.active').textContent.split('Punktestand: ')[1]);
 
             if (startMode === 'DOUBLE_IN' && currentScore === 501) {
-                if (!isDouble && score !== 25 && score !== 50) {
+                if (!isDouble && score !== 50) {
                     Swal.fire({
                         title: "Ungültiger Wurf",
                         text: "Wirf Double oder Bull's Eye",
@@ -74,7 +74,8 @@ function createRing(startR, endR, ringName) {
                         showConfirmButton: false
                     });
                     sendThrow(0, false, false);
-                } else {
+                }
+                else {
                     Swal.fire({
                         title: `${zoneLabel} ${num}`,
                         text: `${score * multiplier} Punkte`,
@@ -86,7 +87,33 @@ function createRing(startR, endR, ringName) {
                     });
                     sendThrow(score, isDouble, isTriple);
                 }
-            } else {
+            }
+            else if (startMode === 'MASTER_IN' && currentScore === 501){
+                if(!isTriple && score !== 50){
+                    Swal.fire({
+                        title: "Ungültiger Wurf",
+                        text: "Wirf Triple oder Bull's Eye",
+                        icon: "error",
+                        toast: true,
+                        position: 'top-end',
+                        timer: 2000,
+                        showConfirmButton: false
+                    })
+                    sendThrow(0, false, false);
+                }else{
+                    Swal.fire({
+                        title: `${zoneLabel} ${num}`,
+                        text: `${score * multiplier} Punkte`,
+                        icon: 'success',
+                        toast: true,
+                        position: 'top-end',
+                        timer: 2000,
+                        showConfirmButton: false
+                    })
+                    sendThrow(score, isDouble, isTriple);
+                }
+            }
+            else{
                 Swal.fire({
                     title: `${zoneLabel} ${num}`,
                     text: `${score * multiplier} Punkte`,
@@ -133,6 +160,18 @@ bull1.addEventListener("click", () => {
             timer: 2000,
             showConfirmButton: false
         });
+        sendThrow(0, false, false);
+    }
+    else if( startMode === 'MASTER_IN' && currentScore === 501){
+        Swal.fire({
+            title: "Ungültiger Wurf",
+            text: "Wirf Triple oder Bull's Eye",
+            icon: 'error',
+            toast: true,
+            position: 'top-end',
+            timer: 2000,
+            showConfirmButton: false
+        })
         sendThrow(0, false, false);
     }
     else{
