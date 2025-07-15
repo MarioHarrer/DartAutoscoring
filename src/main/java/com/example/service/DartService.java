@@ -56,12 +56,18 @@ public class DartService {
         int currentScore = currentMatch.getScores().get(playerId);
         int newScore = currentScore - throwResult.getScore();
 
-        if(newScore == 0 && !validEndThrow(throwResult)){
-            gameState.setThrowsleft(gameState.getThrowsleft() - 1);
-            if(gameState.getThrowsleft() == 0 && !gameState.isGameover()){
-                nextTurn();
+        if (newScore == 0) {
+            if (validEndThrow(throwResult)) {
+                currentMatch.getScores().put(playerId, 0);
+                gameState.setGameover(true);
+                return;
+            } else {
+                gameState.setThrowsleft(gameState.getThrowsleft() - 1);
+                if (gameState.getThrowsleft() == 0 && !gameState.isGameover()) {
+                    nextTurn();
+                }
+                return;
             }
-            return;
         }
 
         if(newScore < 0){
