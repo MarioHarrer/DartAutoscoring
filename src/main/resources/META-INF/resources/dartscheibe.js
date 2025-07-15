@@ -344,6 +344,18 @@ async function sendThrow(score, isDouble = false, isTriple = false) {
         });
 
         if(response.ok) {
+            const throwsLeft = parseInt(document.querySelector('p').textContent.split('VerbleibendeWürfe: ')[1]);
+            if(throwsLeft === 1){
+                Swal.fire({
+                    title: "Spielerwechsel",
+                    text: "Nächster Spieler",
+                    icon: 'info',
+                    toast: true,
+                    timer: 2000,
+                    position: 'top-start',
+                    showConfirmButton: false
+                });
+            }
             setTimeout(() => window.location.reload(), 2000);
         } else {
             Swal.fire({

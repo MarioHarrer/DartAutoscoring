@@ -119,7 +119,7 @@
     <p startmode="{match.mode.startMode}">Startmodus: {match.mode.startMode}</p>
     <p endmode="{match.mode.endMode}">Endmodus: {match.mode.endMode}</p>
     <p style ="background-color: #cccccc">Aktueller Spieler: {playerMap.get(match.gameState.currentplayerId).name}</p>
-    <p>Verbleibende Würfe: {match.gameState.throwsleft}</p>
+    <p>VerbleibendeWürfe: {match.gameState.throwsleft}</p>
     <ul>
         {#for playerId in match.playerIds}
             <li class="{playerId == match.gameState.currentplayerId ? 'active' : ''}">
