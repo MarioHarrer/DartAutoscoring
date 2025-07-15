@@ -64,6 +64,22 @@ function createRing(startR, endR, ringName) {
             const currentScore = parseInt(document.querySelector('li.active').textContent.split('Punktestand: ')[1]);
             const newScore = currentScore - (score * multiplier);
 
+            if(endMode === "MASTER_OUT" || endMode === "DOUBLE_OUT"){
+                if(newScore === 1){
+                    Swal.fire({
+                        title: "Ungültiger Wurf",
+                        text: "1 ist für " + zoneLabel + " nicht erlaubt",
+                        icon: 'error',
+                        toast: true,
+                        position: 'top-end',
+                        timer: 2000,
+                        showConfirmButton: false
+                    })
+                    sendThrow(0, false, false);
+                    return;
+                }
+            }
+
             if(newScore < 0){
                 Swal.fire({
                     title: "Ungültiger Wurf",
