@@ -62,7 +62,21 @@ function createRing(startR, endR, ringName) {
             const startMode = document.querySelector('p[startmode]').getAttribute('startmode');
             const endMode = document.querySelector('p[endmode]').getAttribute('endmode');
             const currentScore = parseInt(document.querySelector('li.active').textContent.split('Punktestand: ')[1]);
+            const newScore = currentScore - (score * multiplier);
 
+            if(newScore < 0){
+                Swal.fire({
+                    title: "Ungültiger Wurf",
+                    text: "Überworfen",
+                    icon: 'error',
+                    toast: true,
+                    position: 'top-end',
+                    timer: 2000,
+                    showConfirmButton: false
+                })
+                sendThrow(0, false, false);
+                return;
+            }
             if (startMode === 'DOUBLE_IN' && currentScore === 501) {
                 if (!isDouble) {
                     Swal.fire({
@@ -94,11 +108,26 @@ function createRing(startR, endR, ringName) {
             }
 
             if (endMode === 'DOUBLE_OUT') {
-                const newScore = currentScore - (score * multiplier);
                 if (newScore === 0 && !isDouble) {
                     Swal.fire({
                         title: "Ungültiger Wurf",
                         text: "Du musst mit Double oder Bull's Eye ausmachen",
+                        icon: 'error',
+                        toast: true,
+                        position: 'top-end',
+                        timer: 2000,
+                        showConfirmButton: false
+                    });
+                    sendThrow(0, false, false);
+                    return;
+                }
+            }
+            else if (endMode === 'MASTER_OUT') {
+                if (newScore === 0 && !isTriple && !isDouble)
+                {
+                    Swal.fire({
+                        title: "Ungültiger Wurf",
+                        text: "Du musst mit Double, Triple oder Bull's Eye ausmachen",
                         icon: 'error',
                         toast: true,
                         position: 'top-end',
@@ -145,7 +174,21 @@ bull1.addEventListener("click", () => {
     const startMode = document.querySelector('p[startmode]').getAttribute('startmode');
     const endMode = document.querySelector('p[endmode]').getAttribute('endmode');
     const currentScore = parseInt(document.querySelector('li.active').textContent.split('Punktestand: ')[1]);
+    const newScore = currentScore - 25;
 
+    if(newScore < 0){
+        Swal.fire({
+            title: "Ungültiger Wurf",
+            text: "Überworfen",
+            icon: 'error',
+            toast: true,
+            position: 'top-end',
+            timer: 2000,
+            showConfirmButton: false
+        })
+        sendThrow(0, false, false);
+        return;
+    }
 
     if (startMode === 'DOUBLE_IN' && currentScore === 501) {
         Swal.fire({
@@ -174,11 +217,24 @@ bull1.addEventListener("click", () => {
         return;
     }
     if(endMode === 'DOUBLE_OUT'){
-        const newScore = currentScore - 25;
         if(newScore === 0){
             Swal.fire({
                 title: "Ungültiger Wurf",
                 text: "Du musst mit Double oder Bull's Eye ausmachen",
+                icon: 'error',
+                toast: true,
+                position: 'top-end',
+                timer: 2000,
+                showConfirmButton: false
+            })
+            sendThrow(0, false, false);
+            return;
+        }
+    }else if(endMode === 'MASTER_OUT'){
+        if(newScore === 0){
+            Swal.fire({
+                title: "Ungültiger Wurf",
+                text: "Du musst mit Double, Triple oder Bull's Eye ausmachen",
                 icon: 'error',
                 toast: true,
                 position: 'top-end',
@@ -210,6 +266,23 @@ bull2.setAttribute("r", "10");
 bull2.setAttribute("fill", "red");
 bull2.setAttribute("data-score", "bull-50");
 bull2.addEventListener("click", () => {
+
+    const currentScore = parseInt(document.querySelector('li.active').textContent.split('Punktestand: ')[1]);
+    const newScore = currentScore - 50;
+
+    if(newScore < 0){
+        Swal.fire({
+            title: "Ungültiger Wurf",
+            text: "Überworfen",
+            icon: 'error',
+            toast: true,
+            position: 'top-end',
+            timer: 2000,
+            showConfirmButton: false
+        });
+        sendThrow(0, false, false);
+        return;
+    }
     Swal.fire({
         title: "Bullseye!",
         text: "50 Punkte",
