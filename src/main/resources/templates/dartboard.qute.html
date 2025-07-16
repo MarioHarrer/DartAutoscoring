@@ -118,12 +118,15 @@
     <p>Modus: {match.mode.type}</p>
     <p startmode="{match.mode.startMode}">Startmodus: {match.mode.startMode}</p>
     <p endmode="{match.mode.endMode}">Endmodus: {match.mode.endMode}</p>
-    <p style ="background-color: #cccccc">Aktueller Spieler: {playerMap.get(match.gameState.currentplayerId).name}</p>
+    <p style ="background-color: bisque">Aktueller Spieler: {playerMap.get(match.gameState.currentplayerId).name}</p>
     <p>VerbleibendeWürfe: {match.gameState.throwsleft}</p>
     <ul>
         {#for playerId in match.playerIds}
             <li class="{playerId == match.gameState.currentplayerId ? 'active' : ''}">
-                {playerMap.get(playerId).name} – Punktestand: {match.scores.get(playerId)} – Average: {match.getPlayerAverage(playerId)} – Gesamt Würfe: {match.getThrows(playerId)}
+                {playerMap.get(playerId).name}
+                – Punktestand: <span style="background-color: bisque">{match.scores.get(playerId)}</span>
+                – Average: <span style="background-color: bisque">{match.getPlayerAverage(playerId)}</span>
+                – Gesamt Würfe: <span style="background-color: bisque">{match.getThrows(playerId)}</span>
             </li>
         {/for}
     </ul>
