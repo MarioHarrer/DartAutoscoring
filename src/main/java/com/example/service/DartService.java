@@ -47,14 +47,18 @@ public class DartService {
 
         if(firstThrow(playerId) && !validStartThrow(throwResult)){
             gameState.setThrowsleft(gameState.getThrowsleft() - 1);
+            currentMatch.getPlayerThrows().get(playerId).add(0);                    //Den Wurf auch wenn er 0 Punkte hat speichern
             if(gameState.getThrowsleft() == 0){
                 nextTurn();
             }
             return;
         }
 
+        int throwscore = throwResult.getScore();
         int currentScore = currentMatch.getScores().get(playerId);
         int newScore = currentScore - throwResult.getScore();
+
+        currentMatch.getPlayerThrows().get(playerId).add(throwscore);
 
         if (newScore == 0) {
             if (validEndThrow(throwResult)) {
