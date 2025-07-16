@@ -123,7 +123,7 @@
     <ul>
         {#for playerId in match.playerIds}
             <li class="{playerId == match.gameState.currentplayerId ? 'active' : ''}">
-                {playerMap.get(playerId).name} – Punktestand: {match.scores.get(playerId)} – Average: {match.getPlayerAverage(playerId)}
+                {playerMap.get(playerId).name} – Punktestand: {match.scores.get(playerId)} – Average: {match.getPlayerAverage(playerId)} – Gesamt Würfe: {match.getThrows(playerId)}
             </li>
         {/for}
     </ul>

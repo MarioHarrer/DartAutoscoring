@@ -43,4 +43,8 @@ public class Match {
         double rounded = Math.round(average * 100.0) / 100.0;
         return rounded;
     }
+
+    public int getThrows(UUID playerId){
+        return playerThrows.get(playerId).size();
+    }
 }
