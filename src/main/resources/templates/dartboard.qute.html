@@ -4,44 +4,115 @@
     <meta charset="UTF-8">
     <title>Dartboard</title>
     <style>
+        *{
+            box-sizing: border-box;
+        }
         body {
             font-family: sans-serif;
-            max-width: 600px;
-            margin: 2em auto;
+            margin: 0;
+            padding: 1rem;
+            font-size: clamp(1rem, 2vw, 1.2rem);
+            background-color: white;
         }
-        form {
-            margin-bottom: 2em;
+        h1, h2, h3, h4{
+            text-align: center;
+            font-size: clamp(1rem, 2vw, 1.2rem);
+        }
+        h1{
+            text-align: center;
+            font-size: clamp(2rem, 5vw, 3rem);
+        }
+        form{
+            width: 100%;
+            max-width: 800px;
+            margin: 0 auto 2rem auto;
+            padding: 1rem;
+            background-color: white;
+            border: 1px solid lightgrey;
+            border-radius: 8px;
+
         }
         label {
             display: block;
-            margin-top: 0.5em;
+            margin-top: 1rem;
+            font-weight: bold;
         }
-        select[multiple] {
-            height: 6em;
+
+        input[type="text"],
+        select,
+        button{
             width: 100%;
-        }
-        #modeConfigOptions {
-            margin-top: 2em;
-            padding: 1em;
-            border: 1px solid #ccc;
+            padding: 0.6rem;
+            margin-top: 0.4rem;
+            font-size: inherit;
+            border: 1px solid lightgray;
             border-radius: 4px;
         }
 
-        .modeConfig {
-            margin: 1em 0;
+        select[multiple]{
+            height: 8em;
+        }
+        button:hover{
+            background-color: dimgray;
+        }
+        button {
+            background-color: black;
+            color: white;
+            border: none;
+            cursor: pointer;
+            transition: background-color 0.2s ease;
         }
 
-        #configureButton {
-            margin: 1em 0;
+        .modeConfig{
+            margin-top: 1rem;
         }
 
-        #startMatchButton {
-            margin-top: 1em;
-        }
-
-        .modeConfig label {
+        .modeConfig label{
             display: inline-block;
-            margin-right: 2em;
+            margin-right: 1rem;
+        }
+
+        ul{
+            list-style: none;
+            padding: 0;
+            max-width: 800px;
+            margin: 2rem auto;
+        }
+
+        li{
+            background: whitesmoke;
+            margin: 0.5rem 0;
+            padding: 1rem;
+            border-radius: 5px;
+            font-size: clamp(1rem, 2.5vw, 1.2rem);
+        }
+
+        li.active{
+            background-color: lightgreen;
+            font-weight: bold;
+        }
+
+        #dartboard{
+            display: block;
+            width: 100%;
+            height: auto;
+            max-width: 500px;
+            margin: 2rem auto;
+        }
+
+        .gewinner-Alert{
+            background-color: honeydew;
+            color: darkgreen;
+            padding: 1rem;
+            margin: 1rem auto;
+            max-width: 600px;
+            border: 1px solid palegreen;
+            border-radius: 6px;
+            font-weight: bold;
+            text-align: center;
+        }
+        p{
+            text-align: center;
         }
 
     </style>
@@ -118,15 +189,15 @@
     <p>Modus: {match.mode.type}</p>
     <p startmode="{match.mode.startMode}">Startmodus: {match.mode.startMode}</p>
     <p endmode="{match.mode.endMode}">Endmodus: {match.mode.endMode}</p>
-    <p style ="background-color: bisque">Aktueller Spieler: {playerMap.get(match.gameState.currentplayerId).name}</p>
+    <p>Aktueller Spieler: {playerMap.get(match.gameState.currentplayerId).name}</p>
     <p>VerbleibendeWürfe: {match.gameState.throwsleft}</p>
     <ul>
         {#for playerId in match.playerIds}
             <li class="{playerId == match.gameState.currentplayerId ? 'active' : ''}">
                 {playerMap.get(playerId).name}
-                – Punktestand: <span style="background-color: bisque">{match.scores.get(playerId)}</span>
-                – Average: <span style="background-color: bisque">{match.getPlayerAverage(playerId)}</span>
-                – Gesamt Würfe: <span style="background-color: bisque">{match.getThrows(playerId)}</span>
+                – Punktestand: <span style="background-color: white">{match.scores.get(playerId)}</span>
+                – Average: <span style="background-color: white">{match.getPlayerAverage(playerId)}</span>
+                – Gesamt Würfe: <span style="background-color: white">{match.getThrows(playerId)}</span>
             </li>
         {/for}
     </ul>
