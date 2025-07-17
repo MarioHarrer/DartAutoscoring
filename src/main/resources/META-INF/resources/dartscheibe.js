@@ -109,19 +109,39 @@ bull1.setAttribute("r", "20");
 bull1.setAttribute("fill", "green");
 bull1.setAttribute("data-score", "bull-25");
 
-bull1.addEventListener("click", () => {
+bull1.addEventListener("click", async () => {
 
 
-    Swal.fire({
-        title: "Outer Bull",
-        text: "25 Punkte",
-        icon: 'success',
-        toast: true,
-        position: 'top-end',
-        timer: 2000,
-        showConfirmButton: false
-    });
-    sendThrow(25, false, false);
+    try{
+        const validation = await validateThrow(25, false, false);
+
+        if(!validation.valid){
+            Swal.fire({
+                title: validation.title,
+                text: validation.text,
+                icon: 'error',
+                toast: true,
+                position: 'top-end',
+                timer: 2000,
+                showConfirmButton: false
+            })
+            sendThrow(0, false, false);
+            return;
+        }
+        Swal.fire({
+            title: "Outer Bull",
+            text: "25 Punkte",
+            icon: 'success',
+            toast: true,
+            position: 'top-end',
+            timer: 2000,
+            showConfirmButton: false
+        });
+        sendThrow(25, false, false);
+    }catch(error){
+        console.error("Validierungsfehler:", error);
+    }
+
 });
 svg.appendChild(bull1);
 
@@ -132,21 +152,40 @@ bull2.setAttribute("cy", "0");
 bull2.setAttribute("r", "10");
 bull2.setAttribute("fill", "red");
 bull2.setAttribute("data-score", "bull-50");
-bull2.addEventListener("click", () => {
+bull2.addEventListener("click", async () => {
 
     const currentScore = parseInt(document.querySelector('li.active').textContent.split('Punktestand: ')[1]);
     const newScore = currentScore - 50;
 
-    Swal.fire({
-        title: "Bullseye!",
-        text: "50 Punkte",
-        icon: 'success',
-        toast: true,
-        position: 'top-end',
-        timer: 2000,
-        showConfirmButton: false
-    });
-    sendThrow(50, true, false);
+    try {
+        const validation = await validateThrow(50, true, false);
+
+        if(!validation.valid){
+            Swal.fire({
+                title: validation.title,
+                text: validation.text,
+                icon: 'error',
+                toast: true,
+                position: 'top-end',
+                timer: 2000,
+                showConfirmButton: false
+            });
+            sendThrow(0, false, false);
+            return;
+        }
+        Swal.fire({
+            title: "Bullseye!",
+            text: "50 Punkte",
+            icon: 'success',
+            toast: true,
+            position: 'top-end',
+            timer: 2000,
+            showConfirmButton: false
+        });
+        sendThrow(50, true, false);
+    }catch(error){
+        console.error("Validierungsfehler:", error);
+    }
 });
 svg.appendChild(bull2);
 

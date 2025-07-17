@@ -217,6 +217,17 @@ public class DartService {
         if((currentmatch.getMode().getEndMode() == EndMode.MASTER_OUT || currentmatch.getMode().getEndMode() == EndMode.DOUBLE_OUT) && newscore == 1){
             return new Massages("Ungültiger Wurf", "1 Punkt in Double/Triple out Modus nicht erlaubt");
         }
+        if(throwResult.getScore() == 25){
+            if((currentmatch.getMode().getEndMode() == EndMode.MASTER_OUT || currentmatch.getMode().getEndMode() == EndMode.DOUBLE_OUT) && newscore == 1){
+                 return new Massages("Ungültiger Wurf", "1 Punkt in Double/Triple out Modus nicht erlaubt");
+            }
+        }
+        if(throwResult.getScore() == 50){
+            if((currentmatch.getMode().getEndMode() == EndMode.MASTER_OUT || currentmatch.getMode().getEndMode() == EndMode.DOUBLE_OUT) && newscore == 1)
+            {
+                return new Massages("Ungültiger Wurf", "1 Punkt in Double/Triple out Modus nicht erlaubt");
+            }
+        }
         return new Massages("OK", "Wurf erfolgreich", true);
     }
 
