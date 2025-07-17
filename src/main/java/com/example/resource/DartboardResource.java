@@ -22,6 +22,23 @@ public class DartboardResource {
     @Inject
     DartService dartService;
 
+    @POST
+    @Path("/validate-throw")
+    @Produces(MediaType.APPLICATION_JSON)
+    @Consumes(MediaType.APPLICATION_FORM_URLENCODED)
+    public Response validateThrow(
+            @FormParam("score") int score,
+            @FormParam("isDouble") boolean isDouble,
+            @FormParam("isTriple") boolean isTriple) {
+
+        UUID currentPlayerId = dartService.getMatch().getGameState().getCurrentplayerId();
+        ThrowResult throwResult = new ThrowResult(score, isDouble, isTriple);
+        Massages validationResult = dartService.messagethrows(currentPlayerId, throwResult);
+
+        return Response.ok(validationResult).build();
+    }
+
+
     @GET
     @Produces(MediaType.TEXT_HTML)
     public TemplateInstance get() {
@@ -82,7 +99,5 @@ public class DartboardResource {
         }
 
     }
-
-
 
 }

@@ -172,4 +172,48 @@ public class DartService {
         }
     }
 
+    public Massages messagethrows(UUID playerId, ThrowResult throwResult) {
+        Match currentmatch = getMatch();
+        GameState gameState = currentmatch.getGameState();
+
+        if (currentmatch == null) {
+            return new Massages("Fehler", "Kein Spiel gestartet");
+        }
+        int currentscore = currentmatch.getScores().get(playerId);
+        int newscore = currentscore - throwResult.getScore();
+
+        if (newscore < 0) {
+            return new Massages("Ungültiger Wurf", "Überworfen");
+        }
+
+
+        if (firstThrow(playerId)) {
+            switch (currentmatch.getMode().getStartMode()) {
+                case DOUBLE_IN:
+                    if (!throwResult.isDouble()) {
+                        return new Massages("Ungültiger Wurf", "Du musst mit Double oder Bull's Eye beginnen");
+                    }
+                    break;
+                case MASTER_IN:
+                    if (!throwResult.isTriple() && !throwResult.isDouble()) {
+                        return new Massages("Ungültiger Wurf", "Du musst mit Triple, Double oder Bull's Eye beginnen");
+                    }
+                    break;
+            }
+        }
+        if (newscore == 0) {
+            switch (currentmatch.getMode().getEndMode()) {
+                case DOUBLE_OUT:
+                    if (!throwResult.isDouble()) {
+                        return new Massages("Ungültiger Wurf", "Du musst mit Double oder Bull's Eye enden");
+                    }
+                case MASTER_OUT:
+                    if (!throwResult.isTriple() && !throwResult.isDouble()) {
+                        return new Massages("Ungültiger Wurf", "Du musst mit Triple, Double oder Bull's Eye enden");
+                    }
+            }
+        }
+        return new Massages("OK", "Wurf erfolgreich", true);
+    }
+
 }

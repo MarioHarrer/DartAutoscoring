@@ -40,7 +40,7 @@ function createRing(startR, endR, ringName) {
         path.setAttribute("stroke", "#fff");
         path.setAttribute("data-score", ringName + "-" + sectorNumbers[i]);
 
-        path.addEventListener("click", () => {
+        path.addEventListener("click", async () => {
             const raw = path.getAttribute("data-score");
             const [zone, num] = raw.split("-");
             const score = parseInt(num);
@@ -59,7 +59,7 @@ function createRing(startR, endR, ringName) {
                 zoneLabel = "Triple";
             }
 
-            const startMode = document.querySelector('p[startmode]').getAttribute('startmode');
+            /*const startMode = document.querySelector('p[startmode]').getAttribute('startmode');
             const endMode = document.querySelector('p[endmode]').getAttribute('endmode');
             const currentScore = parseInt(document.querySelector('li.active').textContent.split('Punktestand: ')[1]);
             const newScore = currentScore - (score * multiplier);
@@ -153,19 +153,38 @@ function createRing(startR, endR, ringName) {
                     sendThrow(0, false, false);
                     return;
                 }
-            }
+            }*/
+            try {
+                const validation = await validateThrow(score, isDouble, isTriple);
 
-            Swal.fire({
-                title: `${zoneLabel} ${num}`,
-                text: `${score * multiplier} Punkte`,
-                icon: 'success',
-                toast: true,
-                position: 'top-end',
-                timer: 2000,
-                showConfirmButton: false
-            });
-            sendThrow(score, isDouble, isTriple);
-        });
+                if (!validation.valid) {
+                    Swal.fire({
+                        title: validation.title,
+                        text: validation.text,
+                        icon: 'error',
+                        toast: true,
+                        position: 'top-end',
+                        timer: 2000,
+                        showConfirmButton: false
+                    });
+                    sendThrow(0, false, false);
+                    return;
+                }
+
+                Swal.fire({
+                    title: `${zoneLabel} ${num}`,
+                    text: `${score * multiplier} Punkte`,
+                    icon: 'success',
+                    toast: true,
+                    position: 'top-end',
+                    timer: 2000,
+                    showConfirmButton: false
+                });
+                sendThrow(score, isDouble, isTriple);
+            } catch (error) {
+                console.error("Validierungsfehler:", error);
+            }
+        })
 
         svg.appendChild(path);
     }
@@ -192,7 +211,7 @@ bull1.addEventListener("click", () => {
     const currentScore = parseInt(document.querySelector('li.active').textContent.split('Punktestand: ')[1]);
     const newScore = currentScore - 25;
 
-    if(newScore < 0){
+    /*if(newScore < 0){
         Swal.fire({
             title: "Ungültiger Wurf",
             text: "Überworfen",
@@ -260,7 +279,7 @@ bull1.addEventListener("click", () => {
             sendThrow(0, false, false);
             return;
         }
-    }
+    }*/
     Swal.fire({
         title: "Outer Bull",
         text: "25 Punkte",
@@ -286,7 +305,7 @@ bull2.addEventListener("click", () => {
     const currentScore = parseInt(document.querySelector('li.active').textContent.split('Punktestand: ')[1]);
     const newScore = currentScore - 50;
 
-    if(newScore < 0){
+    /*if(newScore < 0){
         Swal.fire({
             title: "Ungültiger Wurf",
             text: "Überworfen",
@@ -298,7 +317,7 @@ bull2.addEventListener("click", () => {
         });
         sendThrow(0, false, false);
         return;
-    }
+    }*/
     Swal.fire({
         title: "Bullseye!",
         text: "50 Punkte",
@@ -329,7 +348,6 @@ async function sendThrow(score, isDouble = false, isTriple = false) {
         formData.append('score', score);
         formData.append('isDouble', isDouble);
         formData.append('isTriple', isTriple);
-
 
         const baseUrl = window.location.origin.includes('localhost')
             ? 'http://localhost:8080'
@@ -372,3 +390,34 @@ async function sendThrow(score, isDouble = false, isTriple = false) {
         console.error("Fehler beim Senden des Wurfes", error);
     }
 }
+
+async function validateThrow(score, isDouble, isTriple) {
+    try {
+        const formData = new URLSearchParams();
+        formData.append('score', score);
+        formData.append('isDouble', isDouble);
+        formData.append('isTriple', isTriple);
+
+        const baseUrl = window.location.origin.includes('localhost')
+            ? 'http://localhost:8080'
+            : window.location.origin;
+
+        const response = await fetch(`${baseUrl}/dartboard/validate-throw`, {
+            method: "POST",
+            headers: {
+                'Content-Type': 'application/x-www-form-urlencoded',
+            },
+            body: formData
+        });
+
+        if (!response.ok) {
+            throw new Error('Netzwerkfehler bei der Validierung');
+        }
+
+        return await response.json();
+    } catch (error) {
+        console.error("Validierungsfehler:", error);
+        throw error;
+    }
+}
+
