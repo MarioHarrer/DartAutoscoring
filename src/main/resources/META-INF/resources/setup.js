@@ -40,6 +40,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 playerSelect.form.appendChild(hide)
             })
             playerSelect.disabled = true;
+            configureButton.disabled = true;
         });
 
     function updateModeConfig() {

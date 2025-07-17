@@ -16,16 +16,32 @@ public class DartService {
     private Match match;
 
     public boolean addPlayer(String name) {
-        players.add(new Player(name));
-        return true;
+        if (players.stream().anyMatch(p -> p.getName().equals(name))) {
+            return false;
+        }
+        else{
+            players.add(new Player(name));
+        }
+       return true;
     }
 
     public List<Player> getPlayers() {
         return players;
     }
 
-    public void resetPlayers() {
+    public void resetPlayers()
+    {
+        this.players.clear();
     }
+    public void deletPlayer(String name){
+        for(Player p : players){
+            if(p.getName().equals(name)){
+                players.remove(p);
+                return;
+            }
+        }
+    }
+
 
     public Map<UUID, Player> getPlayerMap() {
         return players.stream()
