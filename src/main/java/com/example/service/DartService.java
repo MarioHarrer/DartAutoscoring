@@ -1,6 +1,7 @@
 package com.example.service;
 
 import com.example.model.*;
+import com.ibm.asyncutil.iteration.AsyncIterator;
 import jakarta.enterprise.context.ApplicationScoped;
 
 import java.util.ArrayList;
@@ -212,6 +213,9 @@ public class DartService {
                         return new Massages("Ungültiger Wurf", "Du musst mit Triple, Double oder Bull's Eye enden");
                     }
             }
+        }
+        if((currentmatch.getMode().getEndMode() == EndMode.MASTER_OUT || currentmatch.getMode().getEndMode() == EndMode.DOUBLE_OUT) && newscore == 1){
+            return new Massages("Ungültiger Wurf", "1 Punkt in Double/Triple out Modus nicht erlaubt");
         }
         return new Massages("OK", "Wurf erfolgreich", true);
     }
