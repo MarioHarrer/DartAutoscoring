@@ -59,6 +59,18 @@ document.addEventListener('DOMContentLoaded', function() {
 document.addEventListener('DOMContentLoaded', function() {
 
     document.getElementById('deleteAllPlayers').addEventListener('click', async () => {
+        const select = document.querySelector('select[name="players"]');
+        const options = select.options;
+
+        if(options.length === 0){
+            Swal.fire({
+                title: "Fehler",
+                text: "Es wurden noch keine Spieler hinzugefügt",
+                icon: 'warning',
+            });
+            return;
+        }
+
         const result = await Swal.fire({
             title: "Spieler löschen",
             text: "Möchten Sie wirklich alle Spieler löschen",
