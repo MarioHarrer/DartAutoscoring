@@ -100,4 +100,18 @@ public class DartboardResource {
 
     }
 
+
+    @DELETE
+    @Path("/players")
+    public Response resetPlayers() {
+        dartService.resetPlayers();
+        return Response.ok().build();
+    }
+
+    @DELETE
+    @Path("/player/{id}")
+    public Response deletePlayer(@PathParam("id") UUID id) {
+        dartService.deletePlayer(id);
+        return Response.ok().build();
+    }
 }

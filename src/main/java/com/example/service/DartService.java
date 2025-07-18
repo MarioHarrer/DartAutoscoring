@@ -34,13 +34,8 @@ public class DartService {
     {
         this.players.clear();
     }
-    public void deletPlayer(String name){
-        for(Player p : players){
-            if(p.getName().equals(name)){
-                players.remove(p);
-                return;
-            }
-        }
+    public void deletePlayer(UUID id) {
+        players.removeIf(p -> p.getId().equals(id));
     }
 
 

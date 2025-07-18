@@ -54,3 +54,64 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     }
 });
+
+
+document.addEventListener('DOMContentLoaded', function() {
+
+    document.getElementById('deleteAllPlayers').addEventListener('click', async () => {
+        const result = await Swal.fire({
+            title: "Spieler löschen",
+            text: "Möchten Sie wirklich alle Spieler löschen",
+            icon: "warning",
+            showCancelButton: true,
+            cancelButtonText: "Abbrechen",
+            cancelButtonColor: "grey",
+            showConfirmButton: true,
+            confirmButtonText: "Ja",
+            confirmButtonColor: "red"
+        })
+
+        if (result.isConfirmed) {
+            await fetch('/dartboard/players', {
+                method: 'DELETE'
+            });
+            location.reload();
+        }
+    })
+
+
+    document.getElementById('deletePlayer').addEventListener('click', async () => {
+        const select = document.querySelector('select[name="players"]');
+        const selectOptions = Array.from(select.selectedOptions);
+
+        if(selectOptions.length === 0){
+            Swal.fire({
+                title: "Fehler",
+                text: "Wählen Sie mindestens einen Spieler aus",
+                icon: 'warning',
+            });
+            return;
+        }
+        const result = await Swal.fire({
+            title: "Wollen Sie wirklich Spieler löschen?",
+            text: `${selectOptions.length} Spieler löschen`,
+            icon: "warning",
+            showCancelButton: true,
+            cancelButtonText: "Abbrechen",
+            cancelButtonColor: "grey",
+            showConfirmButton: true,
+            confirmButtonText: "Ja",
+            confirmButtonColor: "red"
+        });
+
+        if(result.isConfirmed){
+            for(const option of selectOptions){
+                const playerId = option.value;
+                await fetch(`/dartboard/player/${playerId}`, {
+                    method: 'DELETE'
+                });
+                option.remove();
+            }
+        }
+    });
+})
