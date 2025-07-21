@@ -44,6 +44,12 @@ document.addEventListener('DOMContentLoaded', function() {
                 hide.value = option.value;
                 playerSelect.form.appendChild(hide)
             })
+            const modeHiddenInput = document.createElement('input');
+            modeHiddenInput.type = 'hidden';
+            modeHiddenInput.name = 'modeType';
+            modeHiddenInput.value = modeSelect.value;
+            playerSelect.form.appendChild(modeHiddenInput);
+
             playerSelect.disabled = true;
             configureButton.disabled = true;
             deleteAllPlayers.disabled = true;
