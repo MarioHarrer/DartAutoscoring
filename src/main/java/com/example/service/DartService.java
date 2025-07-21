@@ -44,8 +44,8 @@ public class DartService {
                 .collect(Collectors.toMap(Player::getId, player -> player));
     }
 
-    public void startNewMatch(List<UUID> playerIds, MatchMode mode) {
-        this.match = new Match(playerIds, mode);
+    public void startNewMatch(List<UUID> playerIds, MatchMode mode, MatchConfig matchConfig) {
+        this.match = new Match(playerIds, mode, matchConfig);
     }
 
     public Match getMatch() {
@@ -80,15 +80,25 @@ public class DartService {
             if (validEndThrow(throwResult)) {
                 currentMatch.getScores().put(playerId, 0);
                 gameState.setGameover(true);
+
+                currentMatch.addWonLeg(playerId);
+
+                if (currentMatch.isMatchOver()) {
+                    return;
+                } else {
+                    resetLegScores();
+                }
                 return;
             } else {
+                // Ungültiger Checkout-Versuch
                 gameState.setThrowsleft(gameState.getThrowsleft() - 1);
-                if (gameState.getThrowsleft() == 0 && !gameState.isGameover()) {
+                if (gameState.getThrowsleft() == 0) {
                     nextTurn();
                 }
                 return;
             }
         }
+
 
         if (newScore < 0) {
             gameState.setThrowsleft(gameState.getThrowsleft() - 1);
@@ -167,6 +177,30 @@ public class DartService {
             this.match = null;
         }
     }
+    /*
+    public void handleLeg(UUID winnerId){
+        match.addWonLeg(winnerId);
+
+        if(match.isMatchOver()){
+            UUID matchWinner = match.getWinner();
+        }
+        else{
+            resetLegScores();
+        }
+    }*/
+
+    public void resetLegScores(){
+        int startScore = (match.getMode().getType() == MatchModeType.MODE_501) ? 501 : 0;
+        for (UUID playerId : match.getPlayerIds()) {
+            match.getScores().put(playerId, startScore);
+        }
+        match.getGameState().setThrowsleft(3);
+        match.getGameState().setGameover(false);
+        match.getGameState().setCurrentplayerIndex(0);
+        match.getGameState().setCurrentplayerId(match.getPlayerIds().get(0));
+
+    }
+
 
     public Massages messagethrows(UUID playerId, ThrowResult throwResult) {
         Match currentmatch = getMatch();

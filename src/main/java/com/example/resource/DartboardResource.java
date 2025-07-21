@@ -69,14 +69,17 @@ public class DartboardResource {
     public Response startMatch(@FormParam("players") List<UUID> playerIds,
                                @FormParam("modeType") MatchModeType modeType,
                                @FormParam("startMode") StartMode startMode,
-                               @FormParam("endMode") EndMode endMode) {
+                               @FormParam("endMode") EndMode endMode,
+                               @FormParam("gameType") GameType gameType,
+                               @FormParam("rounds") int rounds) {
         if (playerIds.isEmpty() || playerIds.size() > 4) {
             throw new WebApplicationException("Bitte 1 bis 4 Spieler auswählen", 400);
         }
 
 
         MatchMode matchMode = new MatchMode(modeType, startMode, endMode);
-        dartService.startNewMatch(playerIds, matchMode );
+        MatchConfig matchConfig = new MatchConfig(gameType, rounds);
+        dartService.startNewMatch(playerIds, matchMode, matchConfig);
         return Response.seeOther(URI.create("/dartboard")).build();
     }
 

@@ -15,16 +15,20 @@ public class Match {
     private final LocalDateTime startedAt = LocalDateTime.now();
     private final GameState gameState;
     private final Map<UUID, List<Integer>> playerThrows = new HashMap<>();
+    private final MatchConfig matchConfig;
+    private final Map<UUID, Integer> wonLegs = new HashMap<>();
 
-    public Match(List<UUID> playerIds, MatchMode mode) {
+    public Match(List<UUID> playerIds, MatchMode mode, MatchConfig matchConfig) {
         this.playerIds = playerIds;
         this.mode = mode;
+        this.matchConfig = matchConfig;
         this.gameState = new GameState(playerIds);
 
         int startScore = (mode.getType() == MatchModeType.MODE_501) ? 501 : 0;
         for (UUID playerId : playerIds) {
             scores.put(playerId, startScore);
             playerThrows.put(playerId, new ArrayList<>());
+            wonLegs.put(playerId, 0);
         }
     }
 
@@ -46,5 +50,35 @@ public class Match {
 
     public int getThrows(UUID playerId){
         return playerThrows.get(playerId).size();
+    }
+
+    public boolean isMatchOver(){
+        if(matchConfig == null){
+            return false;
+        }
+
+        switch (matchConfig.getGameType()) {
+            case BEST_OF:
+                int neededWins = (matchConfig.getTargetvalue() / 2) + 1;
+                return wonLegs.values().stream().anyMatch(wins -> wins >= neededWins);
+            case FIRST_TO:
+                return wonLegs.values().stream().anyMatch(wins -> wins >= matchConfig.getTargetvalue());
+            default:
+                return false;
+        }
+    }
+
+    public UUID getWinner(){
+        if(!isMatchOver()){
+            return null;
+        }
+       return wonLegs.entrySet().stream()
+               .max(Map.Entry.comparingByValue())
+               .map(Map.Entry::getKey)
+               .orElse(null);
+    }
+
+    public void addWonLeg(UUID playerId){
+        wonLegs.merge(playerId, 1, Integer::sum);
     }
 }

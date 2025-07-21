@@ -277,7 +277,7 @@
                             <h4>Spielmodus</h4>
                             <select name ="gameType" required>
                                 <option value ="BEST_OF">Best of</option>
-                                <option value ="FIRST_OF">First of</option>
+                                <option value ="FIRST_TO">First to</option>
                             </select>
                         </div>
                         <div class ="mode-setting">
@@ -306,6 +306,8 @@
     <p>Modus: {match.mode.type}</p>
     <p startmode="{match.mode.startMode}">Startmodus: {match.mode.startMode}</p>
     <p endmode="{match.mode.endMode}">Endmodus: {match.mode.endMode}</p>
+    <p>Spieltyp: {match.matchConfig.gameType}</p>
+    <p>Legs: {match.matchConfig.targetvalue}</p>
     <p>Aktueller Spieler: {playerMap.get(match.gameState.currentplayerId).name}</p>
     <p>VerbleibendeWürfe: {match.gameState.throwsleft}</p>
     <ul>
@@ -315,6 +317,7 @@
                 – Punktestand: <span style="background-color: white">{match.scores.get(playerId)}</span>
                 – Average: <span style="background-color: white">{match.getPlayerAverage(playerId)}</span>
                 – Gesamt Würfe: <span style="background-color: white">{match.getThrows(playerId)}</span>
+                – Gewonne Legs : <span style="background-color: white">{match.wonLegs.get(playerId)}</span>
             </li>
         {/for}
     </ul>
