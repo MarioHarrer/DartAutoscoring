@@ -5,6 +5,11 @@ document.addEventListener('DOMContentLoaded', function() {
     const mode501Config = document.getElementById('mode501Config');
     const clockConfig = document.getElementById('clockConfig');
     const playerSelect = document.querySelector('select[name="players"]');
+    const deleteAllPlayers = document.getElementById('deleteAllPlayers');
+    const deletePlayer = document.getElementById('deletePlayer');
+    const hinzufuegen = document.getElementById('hinzufuegen');
+    const chooesemode = document.getElementById('modeSelect');
+    const nameInput = document.getElementById('nameInput');
 
     configureButton.disabled = true;
     playerSelect.addEventListener('change', function() {
@@ -41,6 +46,11 @@ document.addEventListener('DOMContentLoaded', function() {
             })
             playerSelect.disabled = true;
             configureButton.disabled = true;
+            deleteAllPlayers.disabled = true;
+            deletePlayer.disabled = true;
+            hinzufuegen.disabled = true;
+            chooesemode.disabled = true;
+            nameInput.disabled = true;
         });
 
     function updateModeConfig() {
