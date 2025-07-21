@@ -15,6 +15,11 @@ public class GameState {
     private boolean isGameover;
     private List<UUID> playOrder;
     private int currentplayerIndex = 0;
+    private int legCounter = 0;
+
+    public void incrementsLegCounter(){
+        this.legCounter++;
+    }
 
     public GameState(List<UUID> players) {
         this.playOrder = players;

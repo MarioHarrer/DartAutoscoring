@@ -4,10 +4,7 @@ import com.example.model.*;
 import com.ibm.asyncutil.iteration.AsyncIterator;
 import jakarta.enterprise.context.ApplicationScoped;
 
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Map;
-import java.util.UUID;
+import java.util.*;
 import java.util.stream.Collectors;
 
 @ApplicationScoped
@@ -15,6 +12,7 @@ public class DartService {
 
     private final List<Player> players = new ArrayList<>();
     private Match match;
+
 
     public boolean addPlayer(String name) {
         if (players.stream().anyMatch(p -> p.getName().equals(name))) {
@@ -194,10 +192,16 @@ public class DartService {
         for (UUID playerId : match.getPlayerIds()) {
             match.getScores().put(playerId, startScore);
         }
+
         match.getGameState().setThrowsleft(3);
         match.getGameState().setGameover(false);
-        match.getGameState().setCurrentplayerIndex(0);
-        match.getGameState().setCurrentplayerId(match.getPlayerIds().get(0));
+
+        match.getGameState().incrementsLegCounter();
+
+        List<UUID> playOrder = match.getGameState().getPlayOrder();
+        int starterIndex = match.getGameState().getLegCounter() % playOrder.size();
+        match.getGameState().setCurrentplayerIndex(starterIndex);
+        match.getGameState().setCurrentplayerId(playOrder.get(starterIndex));
 
     }
 
