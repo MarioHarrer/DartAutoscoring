@@ -29,7 +29,7 @@
             text-align: center;
         }
         form, ul {
-            max-width: 800px;
+            max-width: 1200px;
             width: 100%;
             margin: 1rem auto;
             background-color: white;
@@ -88,6 +88,7 @@
             padding: 1rem;
             border-radius: 5px;
             font-size: clamp(1rem, 2.5vw, 1.2rem);
+            text-align: center;
         }
 
         li.active{
@@ -308,6 +309,7 @@
     <p endmode="{match.mode.endMode}">Endmodus: {match.mode.endMode}</p>
     <p>Spieltyp: {match.matchConfig.gameType}</p>
     <p>Legs: {match.matchConfig.targetvalue}</p>
+    <P>--------------------------------------------------------</P>
     <p>Aktueller Spieler: {playerMap.get(match.gameState.currentplayerId).name}</p>
     <p>VerbleibendeWürfe: {match.gameState.throwsleft}</p>
     <ul>
