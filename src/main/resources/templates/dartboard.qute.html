@@ -162,6 +162,27 @@
             background-color: #cccccc;
         }
 
+        .setting-container{
+            display: flex;
+            gap: 2rem;
+            margin-top: 1rem;
+        }
+        .left{
+            flex: 1;
+        }
+
+        .right{
+            flex: 1;
+        }
+        .mode-setting {
+            margin-bottom: 1.5rem;
+        }
+
+        .mode-setting h4 {
+            margin-bottom: 0.5rem;
+        }
+
+
 
         @media (max-width: 600px){
             .modeConfig label{
@@ -180,6 +201,10 @@
             form, ul, .gewinner-Alert {
                 padding: 0.8rem;
                 margin: 1rem 1rem;
+            }
+            .setting-container{
+                flex-direction: column;
+                gap: 1rem;
             }
         }
 
@@ -228,22 +253,38 @@
         <div id="modeConfigOptions" style="display: none;">
             <div id="mode501Config" class="modeConfig">
                 <h3>501 Einstellungen</h3>
-                <div class="modeConfig">
-                    <h4>Startmodus</h4>
-                    <select name="startMode" required>
-                        <option value="STRAIGHT_IN">Straight In</option>
-                        <option value="DOUBLE_IN">Double In</option>
-                        <option value="MASTER_IN">Master In</option>
-                    </select>
-                </div>
-
-                <div class="modeConfig">
-                    <h4>Beendungsmodus</h4>
-                    <select name="endMode" required>
-                        <option value="STRAIGHT_OUT">Straight Out</option>
-                        <option value="DOUBLE_OUT">Double Out</option>
-                        <option value="MASTER_OUT">Master Out</option>
-                    </select>
+                <div class="setting-container">
+                    <div class="left">
+                        <div class="mode-setting">
+                            <h4>Startmodus</h4>
+                            <select name="startMode" required>
+                                <option value="STRAIGHT_IN">Straight In</option>
+                                <option value="DOUBLE_IN">Double In</option>
+                                <option value="MASTER_IN">Master In</option>
+                            </select>
+                        </div>
+                        <div class="mode-setting">
+                            <h4>Beendungsmodus</h4>
+                            <select name="endMode" required>
+                                <option value="STRAIGHT_OUT">Straight Out</option>
+                                <option value="DOUBLE_OUT">Double Out</option>
+                                <option value="MASTER_OUT">Master Out</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="right">
+                        <div class ="mode-setting">
+                            <h4>Spielmodus</h4>
+                            <select name ="gameType" required>
+                                <option value ="BEST_OF">Best of</option>
+                                <option value ="FIRST_OF">First of</option>
+                            </select>
+                        </div>
+                        <div class ="mode-setting">
+                            <h4>Anzahl Runden</h4>
+                            <input type ="text" name="rounds" min="1" required>
+                        </div>
+                    </div>
                 </div>
             </div>
 
@@ -289,8 +330,6 @@
         </div>
     {/if}
 {/if}
-
-
 
 </body>
 </html>
