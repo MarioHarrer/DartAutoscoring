@@ -1,5 +1,8 @@
 package com.example.model;
 
+import lombok.Getter;
+
+@Getter
 public class Massages {
     private String title;
     private String text;
@@ -20,5 +23,6 @@ public class Massages {
     public String getTitle() { return title; }
     public String getText() { return text; }
     public boolean isValid() { return valid; }
+
 
 }

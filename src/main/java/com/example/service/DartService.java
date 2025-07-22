@@ -241,10 +241,12 @@ public class DartService {
                     if (!throwResult.isDouble()) {
                         return new Massages("Ungültiger Wurf", "Du musst mit Double oder Bull's Eye enden");
                     }
+                    break;
                 case MASTER_OUT:
                     if (!throwResult.isTriple() && !throwResult.isDouble()) {
                         return new Massages("Ungültiger Wurf", "Du musst mit Triple, Double oder Bull's Eye enden");
                     }
+                    break;
             }
         }
         if((currentmatch.getMode().getEndMode() == EndMode.MASTER_OUT || currentmatch.getMode().getEndMode() == EndMode.DOUBLE_OUT) && newscore == 1){

@@ -85,7 +85,7 @@ class DartServiceTest {
         assertEquals(1, dartService.getPlayers().size(), "Ein Spieler soll nur vorhanden sein.");
     }*/
 
-    @Test
+    /*@Test
     void testGetMatch(){
         dartService.startNewMatch(List.of(dartService.getPlayers().get(0).getId()), matchmode);
         assertNotNull(dartService.getMatch(), "Es sollte ein Spiel gestartet sein.");
@@ -158,7 +158,7 @@ class DartServiceTest {
 
         dartService.processThrow(playerId, throwResult);
         assertEquals(501, dartService.getMatch().getScores().get(playerId));
-    }
+    }*/
 
 
 

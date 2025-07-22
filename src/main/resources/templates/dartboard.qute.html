@@ -329,11 +329,18 @@
         <button type="submit">Match beenden</button>
     </form>
 
-    {#if match.gameState.isGameover}
-        <div class="gewinner-Alert">
-            Gewinner: {playerMap.get(match.gameState.currentplayerId).name}!
-        </div>
-    {/if}
+{#if match.gameState.isGameover}
+{#if match.isDraw}
+    <div class="gewinner-Alert">
+        Unentschieden!
+    </div>
+{#else}
+    <div class="gewinner-Alert">
+        Gewinner: {playerMap.get(match.gameState.currentplayerId).name}!
+    </div>
+{/if}
+{/if}
+
 {/if}
 
 </body>

@@ -52,6 +52,34 @@ public class Match {
         return playerThrows.get(playerId).size();
     }
 
+    public boolean isDraw(){
+        if(matchConfig == null || matchConfig.getGameType() != GameType.BEST_OF){
+            return false;
+        }
+
+
+        Iterator<Integer> iterator = wonLegs.values().iterator();
+        int referenceWins = iterator.next();
+
+        boolean sameWins = true;
+        for(int wins : wonLegs.values()){
+            if(wins != referenceWins){
+                sameWins = false;
+                break;
+            }
+        }
+
+        int totalWins = 0;
+        for(int wins : wonLegs.values()){
+            totalWins += wins;
+        }
+        boolean totallegsreached = totalWins >= matchConfig.getTargetvalue();
+
+        return sameWins && totallegsreached;
+    }
+
+
+
     public boolean isMatchOver(){
         if(matchConfig == null){
             return false;
@@ -59,6 +87,9 @@ public class Match {
 
         switch (matchConfig.getGameType()) {
             case BEST_OF:
+                if(isDraw()){
+                    return true;
+                }
                 int neededWins = (matchConfig.getTargetvalue() / 2) + 1;
                 return wonLegs.values().stream().anyMatch(wins -> wins >= neededWins);
             case FIRST_TO:
@@ -68,15 +99,18 @@ public class Match {
         }
     }
 
-    public UUID getWinner(){
+    /*public UUID getWinner(){
         if(!isMatchOver()){
+            return null;
+        }
+        if(isDraw()){
             return null;
         }
        return wonLegs.entrySet().stream()
                .max(Map.Entry.comparingByValue())
                .map(Map.Entry::getKey)
                .orElse(null);
-    }
+    }*/
 
     public void addWonLeg(UUID playerId){
         wonLegs.merge(playerId, 1, Integer::sum);
