@@ -267,5 +267,33 @@ async function validateThrow(score, isDouble, isTriple) {
     }
 }
 
+document.getElementById("missButton").addEventListener("click", async function() {
+    try {
+        await sendThrow(0, false, false);
+
+        Swal.fire({
+            title: "Miss",
+            text: "0 Punkte",
+            icon: 'info',
+            toast: true,
+            position: 'top-end',
+            timer: 2000,
+            showConfirmButton: false
+        });
+    } catch (error) {
+        console.error("Fehler beim Fehlwurf:", error);
+        Swal.fire({
+            title: "Fehler",
+            text: "Etwas ist schief gelaufen",
+            icon: 'error',
+            toast: true,
+            position: 'top-end',
+            timer: 2000,
+            showConfirmButton: false
+        });
+    }
+});
+
+
 
 
