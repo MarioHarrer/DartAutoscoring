@@ -37,15 +37,17 @@ public class Match {
         if(shoots.isEmpty()){
             return 0.0;
         }
+
         int total = 0;
-        for(Integer point : shoots){
-            if(point != null){
-                total += point;
+        int roundsof3 = (shoots.size() / 3) * 3;
+
+        for(int i = 0; i < roundsof3; i++){
+            if(shoots.get(i) != null){
+                total += shoots.get(i);
             }
         }
-        double average = (double)total / shoots.size();
-        double rounded = Math.round(average * 100.0) / 100.0;
-        return rounded;
+        double average = roundsof3 > 0 ? (double)total / (double)roundsof3 : 0.0;
+        return Math.round(average * 100.0) / 100.0;
     }
 
     public int getThrows(UUID playerId){
