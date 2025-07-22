@@ -54,6 +54,7 @@ public class DartService {
         Match currentMatch = getMatch();
         GameState gameState = currentMatch.getGameState();
 
+        gameState.setLastreset(false);
 
         if (!(isValidThrow(playerId, throwResult))) {
             throw new IllegalArgumentException("Invalid throw");
@@ -214,6 +215,10 @@ public class DartService {
             return;
         }
 
+        if(gameState.isLastreset()){
+            return;
+        }
+
         int lastThrow = playerThrows.remove(playerThrows.size() - 1);
 
         if(currentmatch.getMode().getType() == MatchModeType.MODE_501){
@@ -222,7 +227,7 @@ public class DartService {
         }
 
         gameState.setThrowsleft(gameState.getThrowsleft() + 1);
-
+        gameState.setLastreset(true);
         /*if(gameState.isGameover()){
             gameState.setGameover(false);
         }*/

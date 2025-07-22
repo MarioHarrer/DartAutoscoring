@@ -32,23 +32,25 @@ public class Match {
         }
     }
 
-    public double getPlayerAverage(UUID playerId){
+    public double getPlayerAverage(UUID playerId) {
         List<Integer> shoots = this.playerThrows.get(playerId);
-        if(shoots.isEmpty()){
+        if (shoots.isEmpty()) {
             return 0.0;
         }
 
         int total = 0;
-        int roundsof3 = (shoots.size() / 3) * 3;
+        int roundsof3 = shoots.size() / 3;
 
-        for(int i = 0; i < roundsof3; i++){
-            if(shoots.get(i) != null){
+        for (int i = 0; i < roundsof3 * 3; i++) {
+            if (shoots.get(i) != null) {
                 total += shoots.get(i);
             }
         }
-        double average = roundsof3 > 0 ? (double)total / (double)roundsof3 : 0.0;
+
+        double average = roundsof3 > 0 ? (double)total / roundsof3 : 0.0;
         return Math.round(average * 100.0) / 100.0;
     }
+
 
     public int getThrows(UUID playerId){
         return playerThrows.get(playerId).size();

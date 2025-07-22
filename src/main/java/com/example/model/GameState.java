@@ -16,6 +16,7 @@ public class GameState {
     private List<UUID> playOrder;
     private int currentplayerIndex = 0;
     private int legCounter = 0;
+    private boolean lastreset = false;
 
     public void incrementsLegCounter(){
         this.legCounter++;
