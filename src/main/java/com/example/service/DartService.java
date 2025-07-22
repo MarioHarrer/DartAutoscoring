@@ -219,14 +219,23 @@ public class DartService {
             return;
         }
 
+
         int lastThrow = playerThrows.remove(playerThrows.size() - 1);
+
+        if(gameState.getThrowsleft() == 3){
+            gameState.setThrowsleft(1);
+        }
+        else{
+            gameState.setThrowsleft(gameState.getThrowsleft() + 1);
+        }
+
 
         if(currentmatch.getMode().getType() == MatchModeType.MODE_501){
             int currentScore = currentmatch.getScores().get(playerId);
             currentmatch.getScores().put(playerId, currentScore + lastThrow);
         }
 
-        gameState.setThrowsleft(gameState.getThrowsleft() + 1);
+
         gameState.setLastreset(true);
         /*if(gameState.isGameover()){
             gameState.setGameover(false);
