@@ -79,7 +79,8 @@ class DartServiceTest {
         assertEquals(3, dartService.getPlayers().size(), "Nur ein Spieler sollte vorhanden sein.");
     }
 
-    /*@Test
+    /*
+    @Test
     void testDeletPlayer(){
         dartService.deletePlayer("Alice");
         assertEquals(1, dartService.getPlayers().size(), "Ein Spieler soll nur vorhanden sein.");

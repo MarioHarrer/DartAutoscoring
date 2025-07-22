@@ -55,6 +55,11 @@ public class Match {
     }
 
     public boolean isDraw(){
+
+        if(playerIds.size() == 1){
+            return false;
+        }
+
         if(matchConfig == null || matchConfig.getGameType() != GameType.BEST_OF){
             return false;
         }
