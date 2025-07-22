@@ -232,6 +232,9 @@
         .end-match-button:hover {
             background-color: #444444;
         }
+        .reset-button{
+            text-align: center;
+        }
 
 
         @media (max-width: 600px){
@@ -382,7 +385,9 @@
         <svg id="dartboard" viewBox="-250 -250 500 500"></svg>
         <button type="button" id="missButton" class="miss-button">Fehlwurf</button>
     </div>
-
+    <div>
+        <button type="button" id="resetButton" class="reset-button">Letzten Wurf rückgängig machen</button>
+    </div>
 
 {#if match.gameState.isGameover}
 {#if match.isDraw}

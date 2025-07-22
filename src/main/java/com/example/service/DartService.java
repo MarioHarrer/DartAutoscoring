@@ -205,6 +205,29 @@ public class DartService {
 
     }
 
+    public void deleteLastThrow(UUID playerId){
+        Match currentmatch = getMatch();
+        GameState gameState = currentmatch.getGameState();
+        List<Integer> playerThrows = currentmatch.getPlayerThrows().get(playerId);
+
+        if(playerThrows.isEmpty()){
+            return;
+        }
+
+        int lastThrow = playerThrows.remove(playerThrows.size() - 1);
+
+        if(currentmatch.getMode().getType() == MatchModeType.MODE_501){
+            int currentScore = currentmatch.getScores().get(playerId);
+            currentmatch.getScores().put(playerId, currentScore + lastThrow);
+        }
+
+        gameState.setThrowsleft(gameState.getThrowsleft() + 1);
+
+        /*if(gameState.isGameover()){
+            gameState.setGameover(false);
+        }*/
+    }
+
 
     public Massages messagethrows(UUID playerId, ThrowResult throwResult) {
         Match currentmatch = getMatch();

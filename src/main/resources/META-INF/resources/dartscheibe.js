@@ -293,6 +293,46 @@ document.getElementById("missButton").addEventListener("click", async function()
         });
     }
 });
+document.getElementById("resetButton").addEventListener("click", async function() {
+    try{
+        const baseUrl = window.location.origin.includes('localhost')
+        ? 'http://localhost:8080'
+        : window.location.origin;
+
+        const response = await fetch(`${baseUrl}/dartboard/reset`, {
+            method: "POST",
+            headers: {
+                'Content-Type': 'application/x-www-form-urlencoded',
+            },
+        });
+
+        if(response.ok){
+            Swal.fire({
+                title: "Rücksetzen",
+                text: "Letzter Wurf wurde zurückgesetzt",
+                icon: 'info',
+                toast: true,
+                position: 'top-end',
+                timer: 2000,
+                showConfirmButton: false
+            })
+            setTimeout(() => window.location.reload(), 2000);
+        }else{
+            Swal.fire({
+                title: "Fehler",
+                text: "Etwas ist schief gelaufen",
+                icon: 'error',
+                toast: true,
+                position: 'top-end',
+                timer: 2000,
+                showConfirmButton: false
+                }
+            )
+        }
+    }catch(error){
+        console.error("Fehler Bei Wurf rückgangig machen: ", error);
+    }
+})
 
 
 
