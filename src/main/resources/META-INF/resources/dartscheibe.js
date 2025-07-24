@@ -1,4 +1,20 @@
 
+const isGameOver = document.querySelector('.gewinner-Alert') !== null;
+
+const missButton = document.getElementById('missButton');
+const resetButton = document.getElementById('resetButton');
+const endMatchButton = document.querySelector('.end-match-button');
+
+
+if (isGameOver) {
+
+    missButton.disabled = true;
+    resetButton.disabled = true;
+
+    endMatchButton.style.backgroundColor = '#28a745';
+    endMatchButton.style.transform = 'scale(1.05)';
+}
+
 
 const sectorAngles = Array.from({ length: 20 }, (_, i) => i * 18 - 9);
 const sectorNumbers = [20, 1, 18, 4, 13, 6, 10, 15, 2, 17, 3, 19, 7, 16, 8, 11, 14, 9, 12, 5];
@@ -284,7 +300,7 @@ document.getElementById("missButton").addEventListener("click", async function()
         Swal.fire({
             title: "Miss",
             text: "0 Punkte",
-            icon: 'info',
+            icon: 'success',
             toast: true,
             position: 'top-end',
             timer: 2000,
@@ -317,6 +333,7 @@ document.getElementById("resetButton").addEventListener("click", async function(
         });
 
         if(response.ok){
+
             Swal.fire({
                 title: "Rücksetzen",
                 text: "Letzter Wurf wurde zurückgesetzt",
