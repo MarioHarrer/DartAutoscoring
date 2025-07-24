@@ -426,6 +426,19 @@
     </div>
 
 {#if match.gameState.isGameover}
+    <div id="tsparticles">
+        <script src="https://cdn.jsdelivr.net/npm/tsparticles@2.11.1/tsparticles.bundle.min.js"></script>
+        <script src="confetti.js" defer></script>
+    </div>
+
+    <script>
+        window.addEventListener("DOMContentLoaded", () => {
+            if (typeof launchConfetti === "function") {
+                launchConfetti();
+            }
+        });
+    </script>
+
 {#if match.isDraw}
     <div class="gewinner-Alert">Unentschieden!</div>
 {#else}
@@ -435,7 +448,5 @@
 {/if}
 {/if}
 {/if}
-
-
 </body>
 </html>
