@@ -189,16 +189,26 @@ bull2.addEventListener("click", async () => {
 });
 svg.appendChild(bull2);
 
-// Zahlenbeschriftung
+//Zahlenbeschriftung
+const numberRadius = 205; // Konstanter Abstand vom Mittelpunkt
 for (let i = 0; i < 20; i++) {
-    const angle = sectorAngles[i] + 9;
-    const [x, y] = polarToCartesian(210, angle);
+    const angle = sectorAngles[i] + 9; // Zentrum des Sektors
+    const angleRad = (angle - 90) * Math.PI / 180.0;
+    const x = numberRadius * Math.cos(angleRad);
+    const y = numberRadius * Math.sin(angleRad);
+
     const label = document.createElementNS("http://www.w3.org/2000/svg", "text");
     label.setAttribute("x", x);
     label.setAttribute("y", y);
+    label.setAttribute("text-anchor", "middle"); // Zentrierte Ausrichtung
+    label.setAttribute("dominant-baseline", "middle"); // Vertikale Zentrierung
+    label.setAttribute("font-size", "16"); // Einheitliche Schriftgröße
+    label.setAttribute("font-family", "Arial"); // Einheitliche Schriftart
     label.textContent = sectorNumbers[i];
+
     svg.appendChild(label);
 }
+
 
 async function sendThrow(score, isDouble = false, isTriple = false) {
     try {
