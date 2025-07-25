@@ -266,6 +266,31 @@
             margin: 0;
         }
 
+        .team-mode{
+            margin: 1rem 0;
+            padding: 1rem;
+            background-color: #f8f9fa;
+            border-radius: 4px;
+        }
+
+        .team-assigments{
+            display: flex;
+            gap: 2rem;
+            margin: 1rem 0;
+        }
+
+        .team1, .team2{
+            flex: 1;
+            padding: 1rem;
+            background-color: #f8f9fa;
+            border-radius: 4px;
+        }
+
+         .team-player{
+             width: 100%;
+             margin: 0.5rem 0
+         }
+
 
         @media (max-width: 600px){
             .modeConfig label{
@@ -303,6 +328,7 @@
 
 {#if !match??}
     <script src="setup.js" defer></script>
+    <script src="teamModus.js" defer></script>
     <h2>Neuen Spieler hinzufügen</h2>
     <form action="/dartboard/player" method="post">
         <label>Spielername:</label>
@@ -338,6 +364,35 @@
         <div id="modeConfigOptions" style="display: none;">
             <div id="mode501Config" class="modeConfig">
                 <h3>501 Einstellungen</h3>
+                <div class ="team-mode">
+                    <label>
+                        <input type="checkbox" id="teamModeCheckbox" name="teamMode"> Team-Modus
+                    </label>
+                </div>
+
+                <div id="teamSettings" style="display: none;">
+                    <h4>Team Zuordnung</h4>
+                    <div class="team-assigments">
+                        <div class ="team1">
+                            <h5>Team 1</h5>
+                            <select name="team1Player1" class="team-player" disabled>
+                                <option value="">Spieler 1 wählen</option>
+                            </select>
+                            <select name="team1Player2" class="team-player" disabled>
+                                <option value="">Spieler 2 wählen</option>
+                            </select>
+                        </div>
+                        <div class="team2">
+                            <h5>Team 2</h5>
+                            <select name="team2Player1" class="team-player" disabled>
+                                <option value="">Spieler1 wählen</option>
+                            </select>
+                            <select name="team2Spieler2" class="team-player" disabled>
+                                <option value="">Spieler 2 wählen</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
                 <div class="setting-container">
                     <div class="left">
                         <div class="mode-setting">
