@@ -54,6 +54,7 @@ public class DartService {
         GameState gameState = currentMatch.getGameState();
 
         gameState.setLastreset(false);
+        gameState.setNewLegStarted(false);
 
         if (!(isValidThrow(playerId, throwResult))) {
             throw new IllegalArgumentException("Invalid throw");
@@ -195,7 +196,7 @@ public class DartService {
 
         match.getGameState().setThrowsleft(3);
         match.getGameState().setGameover(false);
-
+        match.getGameState().setNewLegStarted(true);
         match.getGameState().incrementsLegCounter();
 
         List<UUID> playOrder = match.getGameState().getPlayOrder();

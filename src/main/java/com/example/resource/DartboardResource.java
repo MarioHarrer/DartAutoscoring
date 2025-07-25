@@ -106,14 +106,18 @@ public class DartboardResource {
     @Path("reset")
     @Produces(MediaType.APPLICATION_JSON)
     public Response resetMatch() {
-        try{
+        try {
             UUID currentPlayerId = dartService.getMatch().getGameState().getCurrentplayerId();
+            if (dartService.getMatch().getGameState().isLastreset()) {
+                return Response.status(204).build();
+            }
             dartService.deleteLastThrow(currentPlayerId);
             return Response.ok().build();
-        }catch (IllegalArgumentException e){
+        } catch (IllegalArgumentException e) {
             throw new WebApplicationException(e.getMessage(), 400);
         }
     }
+
 
     @DELETE
     @Path("/players")

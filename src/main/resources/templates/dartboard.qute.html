@@ -401,7 +401,8 @@
             <p>Verbleibende Würfe: {match.gameState.throwsleft}</p>
             <ul class="players-list">
                 {#for playerId in match.playerIds}
-                    <li class="{playerId == match.gameState.currentplayerId ? 'active' : ''}">
+                    <li class="{playerId == match.gameState.currentplayerId ? 'active' : ''}"
+                        data-new-leg="{match.gameState.newLegStarted}">
                         {playerMap.get(playerId).name}
                         – Punktestand: <span class="score">{match.scores.get(playerId)}</span>
                         – Average: <span class="score">{match.getPlayerAverage(playerId)}</span>

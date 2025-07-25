@@ -6,6 +6,12 @@ const resetButton = document.getElementById('resetButton');
 const endMatchButton = document.querySelector('.end-match-button');
 
 
+const isNewLegStarted = document.querySelector('li.active').getAttribute('data-new-leg') === 'true';
+
+if (isNewLegStarted) {
+    resetButton.disabled = true;
+}
+
 if (isGameOver) {
 
     missButton.disabled = true;
@@ -320,10 +326,10 @@ document.getElementById("missButton").addEventListener("click", async function()
     }
 });
 document.getElementById("resetButton").addEventListener("click", async function() {
-    try{
+    try {
         const baseUrl = window.location.origin.includes('localhost')
-        ? 'http://localhost:8080'
-        : window.location.origin;
+            ? 'http://localhost:8080'
+            : window.location.origin;
 
         const response = await fetch(`${baseUrl}/dartboard/reset`, {
             method: "POST",
@@ -332,8 +338,17 @@ document.getElementById("resetButton").addEventListener("click", async function(
             },
         });
 
-        if(response.ok){
-
+        if (response.status === 204) { // Wenn der Wurf bereits zurückgesetzt wurde
+            Swal.fire({
+                title: "Nicht möglich",
+                text: "Der letzte Wurf wurde bereits zurückgesetzt",
+                icon: 'warning',
+                toast: true,
+                position: 'top-end',
+                timer: 2000,
+                showConfirmButton: false
+            });
+        } else if (response.ok) {
             Swal.fire({
                 title: "Rücksetzen",
                 text: "Letzter Wurf wurde zurückgesetzt",
@@ -342,9 +357,9 @@ document.getElementById("resetButton").addEventListener("click", async function(
                 position: 'top-end',
                 timer: 2000,
                 showConfirmButton: false
-            })
+            });
             setTimeout(() => window.location.reload(), 2000);
-        }else{
+        } else {
             Swal.fire({
                 title: "Fehler",
                 text: "Etwas ist schief gelaufen",
@@ -353,13 +368,15 @@ document.getElementById("resetButton").addEventListener("click", async function(
                 position: 'top-end',
                 timer: 2000,
                 showConfirmButton: false
-                }
-            )
+            });
         }
-    }catch(error){
-        console.error("Fehler Bei Wurf rückgangig machen: ", error);
+    } catch (error) {
+        console.error("Fehler Bei Wurf rückgängig machen: ", error);
     }
-})
+});
+
+
+
 
 
 
