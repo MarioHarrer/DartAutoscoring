@@ -291,6 +291,39 @@
              margin: 0.5rem 0
          }
 
+        .team-display {
+            width: 100%;
+            margin-top: 1rem;
+        }
+
+        .team {
+            background-color: #f8f9fa;
+            border-radius: 8px;
+            padding: 1rem;
+            margin-bottom: 1rem;
+        }
+
+        .team h3 {
+            color: #333;
+            margin-bottom: 1rem;
+            font-size: 1.2rem;
+            border-bottom: 2px solid #dee2e6;
+            padding-bottom: 0.5rem;
+        }
+
+        .team-1 {
+            border-left: 4px solid #007bff;
+        }
+
+        .team-2 {
+            border-left: 4px solid #28a745;
+        }
+
+        .team li {
+            margin: 0.5rem 0;
+        }
+
+
 
         @media (max-width: 600px){
             .modeConfig label{
@@ -373,26 +406,29 @@
                 <div id="teamSettings" style="display: none;">
                     <h4>Team Zuordnung</h4>
                     <div class="team-assigments">
-                        <div class ="team1">
+                        <div class="team1">
                             <h5>Team 1</h5>
-                            <select name="team1Player1" class="team-player" disabled>
-                                <option value="">Spieler 1 wählen</option>
-                            </select>
-                            <select name="team1Player2" class="team-player" disabled>
-                                <option value="">Spieler 2 wählen</option>
+                            <select name="team1Players" class="team-player" multiple size="2">
+                                {#for player in players}
+                                    <option value="{player.id}">
+                                        {player.name}
+                                    </option>
+                                {/for}
                             </select>
                         </div>
                         <div class="team2">
                             <h5>Team 2</h5>
-                            <select name="team2Player1" class="team-player" disabled>
-                                <option value="">Spieler1 wählen</option>
-                            </select>
-                            <select name="team2Spieler2" class="team-player" disabled>
-                                <option value="">Spieler 2 wählen</option>
+                            <select name="team2Players" class="team-player" multiple size="2">
+                                {#for player in players}
+                                    <option value="{player.id}">
+                                        {player.name}
+                                    </option>
+                                {/for}
                             </select>
                         </div>
                     </div>
                 </div>
+
                 <div class="setting-container">
                     <div class="left">
                         <div class="mode-setting">
@@ -455,17 +491,65 @@
             <p>Aktueller Spieler: {playerMap.get(match.gameState.currentplayerId).name}</p>
             <p>Verbleibende Würfe: {match.gameState.throwsleft}</p>
             <ul class="players-list">
-                {#for playerId in match.playerIds}
-                    <li class="{playerId == match.gameState.currentplayerId ? 'active' : ''}"
-                        data-new-leg="{match.gameState.newLegStarted}">
-                        {playerMap.get(playerId).name}
-                        – Punktestand: <span class="score">{match.scores.get(playerId)}</span>
-                        – Average: <span class="score">{match.getPlayerAverage(playerId)}</span>
-                        – Gesamt Würfe: <span class="score">{match.getThrows(playerId)}</span>
-                        – Gewonne Legs: <span class="score">{match.wonLegs.get(playerId)}</span>
-                    </li>
-                {/for}
+                {#if match.playerIds.size == 4}
+                    <div class="team-display">
+                        <div class="team team-1">
+                            <h3>Team 1</h3>
+                            <!-- Erste zwei Spieler sind Team 1 -->
+                            <li class="{match.playerIds.get(0) == match.gameState.currentplayerId ? 'active' : ''}"
+                                data-new-leg="{match.gameState.newLegStarted}">
+                                {playerMap.get(match.playerIds.get(0)).name}
+                                – Punktestand: <span class="score">{match.scores.get(match.playerIds.get(0))}</span>
+                                – Average: <span class="score">{match.getPlayerAverage(match.playerIds.get(0))}</span>
+                                – Gesamt Würfe: <span class="score">{match.getThrows(match.playerIds.get(0))}</span>
+                                – Gewonne Legs: <span class="score">{match.wonLegs.get(match.playerIds.get(0))}</span>
+                            </li>
+                            <li class="{match.playerIds.get(1) == match.gameState.currentplayerId ? 'active' : ''}"
+                                data-new-leg="{match.gameState.newLegStarted}">
+                                {playerMap.get(match.playerIds.get(1)).name}
+                                – Punktestand: <span class="score">{match.scores.get(match.playerIds.get(1))}</span>
+                                – Average: <span class="score">{match.getPlayerAverage(match.playerIds.get(1))}</span>
+                                – Gesamt Würfe: <span class="score">{match.getThrows(match.playerIds.get(1))}</span>
+                                – Gewonne Legs: <span class="score">{match.wonLegs.get(match.playerIds.get(1))}</span>
+                            </li>
+                        </div>
+                        <div class="team team-2">
+                            <h3>Team 2</h3>
+                            <!-- Letzte zwei Spieler sind Team 2 -->
+                            <li class="{match.playerIds.get(2) == match.gameState.currentplayerId ? 'active' : ''}"
+                                data-new-leg="{match.gameState.newLegStarted}">
+                                {playerMap.get(match.playerIds.get(2)).name}
+                                – Punktestand: <span class="score">{match.scores.get(match.playerIds.get(2))}</span>
+                                – Average: <span class="score">{match.getPlayerAverage(match.playerIds.get(2))}</span>
+                                – Gesamt Würfe: <span class="score">{match.getThrows(match.playerIds.get(2))}</span>
+                                – Gewonne Legs: <span class="score">{match.wonLegs.get(match.playerIds.get(2))}</span>
+                            </li>
+                            <li class="{match.playerIds.get(3) == match.gameState.currentplayerId ? 'active' : ''}"
+                                data-new-leg="{match.gameState.newLegStarted}">
+                                {playerMap.get(match.playerIds.get(3)).name}
+                                – Punktestand: <span class="score">{match.scores.get(match.playerIds.get(3))}</span>
+                                – Average: <span class="score">{match.getPlayerAverage(match.playerIds.get(3))}</span>
+                                – Gesamt Würfe: <span class="score">{match.getThrows(match.playerIds.get(3))}</span>
+                                – Gewonne Legs: <span class="score">{match.wonLegs.get(match.playerIds.get(3))}</span>
+                            </li>
+                        </div>
+                    </div>
+                {#else}
+                    {#for playerId in match.playerIds}
+                        <li class="{playerId == match.gameState.currentplayerId ? 'active' : ''}"
+                            data-new-leg="{match.gameState.newLegStarted}">
+                            {playerMap.get(playerId).name}
+                            – Punktestand: <span class="score">{match.scores.get(playerId)}</span>
+                            – Average: <span class="score">{match.getPlayerAverage(playerId)}</span>
+                            – Gesamt Würfe: <span class="score">{match.getThrows(playerId)}</span>
+                            – Gewonne Legs: <span class="score">{match.wonLegs.get(playerId)}</span>
+                        </li>
+                    {/for}
+                {/if}
             </ul>
+
+
+
         </div>
 
         <!-- Rechte Hälfte -->

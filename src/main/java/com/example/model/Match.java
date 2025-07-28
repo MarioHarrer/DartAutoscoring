@@ -18,6 +18,7 @@ public class Match {
     private final MatchConfig matchConfig;
     private final Map<UUID, Integer> wonLegs = new HashMap<>();
 
+
     public Match(List<UUID> playerIds, MatchMode mode, MatchConfig matchConfig) {
         this.playerIds = playerIds;
         this.mode = mode;

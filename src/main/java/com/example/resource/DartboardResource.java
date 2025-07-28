@@ -10,6 +10,7 @@ import jakarta.ws.rs.core.MediaType;
 import jakarta.ws.rs.core.Response;
 
 import java.net.URI;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
 
@@ -55,17 +56,30 @@ public class DartboardResource {
                                @FormParam("startMode") StartMode startMode,
                                @FormParam("endMode") EndMode endMode,
                                @FormParam("gameType") GameType gameType,
-                               @FormParam("rounds") int rounds) {
+                               @FormParam("rounds") int rounds,
+                               @FormParam("team1Players") List<UUID> team1Players,
+                               @FormParam("team2Players") List<UUID> team2Players) {
         if (playerIds.isEmpty() || playerIds.size() > 4) {
             throw new WebApplicationException("Bitte 1 bis 4 Spieler auswählen", 400);
         }
 
-
         MatchMode matchMode = new MatchMode(modeType, startMode, endMode);
         MatchConfig matchConfig = new MatchConfig(gameType, rounds);
-        dartService.startNewMatch(playerIds, matchMode, matchConfig);
+
+        // Wenn Team-Spieler ausgewählt wurden, verwende diese Reihenfolge
+        if (team1Players != null && !team1Players.isEmpty() &&
+                team2Players != null && !team2Players.isEmpty()) {
+            List<UUID> orderedPlayers = new ArrayList<>();
+            orderedPlayers.addAll(team1Players);
+            orderedPlayers.addAll(team2Players);
+            dartService.startNewMatch(orderedPlayers, matchMode, matchConfig);
+        } else {
+            dartService.startNewMatch(playerIds, matchMode, matchConfig);
+        }
+
         return Response.seeOther(URI.create("/dartboard")).build();
     }
+
 
     @POST
     @Path("/validate-throw")
