@@ -8,7 +8,6 @@ document.addEventListener('DOMContentLoaded', function () {
     const startMatchButton = document.getElementById('startMatchButton');
     const form = document.querySelector('form[action="/dartboard/match"]');
 
-
     teamModeCheckbox.addEventListener('change', function () {
         const isChecked = this.checked;
         teamSettings.style.display = isChecked ? 'block' : 'none';
@@ -16,7 +15,6 @@ document.addEventListener('DOMContentLoaded', function () {
         team1Select.selectedIndex = -1;
         team2Select.selectedIndex = -1;
     });
-
 
     playerSelect.addEventListener('change', function () {
         const selectedPlayers = Array.from(this.selectedOptions);
@@ -34,35 +32,9 @@ document.addEventListener('DOMContentLoaded', function () {
         }
     });
 
-
-    teamPlayerSelects.forEach(select => {
-        select.addEventListener('change', function (event) {
-            const selectedValue = event.target.value;
-            if (selectedValue === "") return;
-
-            const duplicate = Array.from(teamPlayerSelects).find(s =>
-                s !== event.target && s.value === selectedValue
-            );
-
-            if (duplicate) {
-                Swal.fire({
-                    icon: 'error',
-                    title: 'Fehler',
-                    text: 'Dieser Spieler wurde bereits einem Team zugeordnet!',
-                }).then(() => {
-                    event.target.value = "";
-                });
-                startMatchButton.disabled = true;
-            } else {
-                startMatchButton.disabled = false;
-            }
-        });
-    });
-
-
     function updateTeamPlayerOptions(players) {
         teamPlayerSelects.forEach(select => {
-            select.innerHTML = ''; // Kein "Spieler wählen"
+            select.innerHTML = '';
             players.forEach(player => {
                 const option = document.createElement('option');
                 option.value = player.value;
@@ -71,7 +43,6 @@ document.addEventListener('DOMContentLoaded', function () {
             });
         });
     }
-
 
     form.addEventListener('submit', function (e) {
         if (teamModeCheckbox.checked) {
@@ -98,10 +69,6 @@ document.addEventListener('DOMContentLoaded', function () {
                 })
                 return;
             }
-
-            // Optional: Setze die Spieler-Reihenfolge
-            const all = [...team1, ...team2];
-            playerSelect.value = all.map(opt => opt.value);
         }
     });
 
