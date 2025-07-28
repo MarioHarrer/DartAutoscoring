@@ -323,6 +323,29 @@
             margin: 0.5rem 0;
         }
 
+        .team-display .team > h3 {
+            font-size: 1.8rem;
+            margin: 1rem 0;
+            padding: 0.5rem;
+            color: #333;
+            border-bottom: 3px solid #dee2e6;
+        }
+
+        .team-1 > h3 {
+            color: #d32f2f;  /* Rötlicher Farbton für Team 1 */
+        }
+
+        .team-2 > h3 {
+            color: #388e3c;  /* Grünlicher Farbton für Team 2 */
+        }
+
+        .team-stats {
+            font-size: 1.2rem;
+            color: #666;
+            margin-left: 1rem;
+        }
+
+
 
 
         @media (max-width: 600px){
@@ -494,46 +517,39 @@
                 {#if match.playerIds.size == 4}
                     <div class="team-display">
                         <div class="team team-1">
-                            <h3>Team 1</h3>
-                            <!-- Erste zwei Spieler sind Team 1 -->
+                            <h3>TEAM 1 <span class="team-stats">- Punktestand: <span class="score">{match.scores.get(match.playerIds.get(0))}</span>
+            - Gewonne Legs: <span class="score">{match.wonLegs.get(match.playerIds.get(0))}</span></span></h3>
                             <li class="{match.playerIds.get(0) == match.gameState.currentplayerId ? 'active' : ''}"
                                 data-new-leg="{match.gameState.newLegStarted}">
                                 {playerMap.get(match.playerIds.get(0)).name}
-                                – Punktestand: <span class="score">{match.scores.get(match.playerIds.get(0))}</span>
                                 – Average: <span class="score">{match.getPlayerAverage(match.playerIds.get(0))}</span>
                                 – Gesamt Würfe: <span class="score">{match.getThrows(match.playerIds.get(0))}</span>
-                                – Gewonne Legs: <span class="score">{match.wonLegs.get(match.playerIds.get(0))}</span>
                             </li>
                             <li class="{match.playerIds.get(1) == match.gameState.currentplayerId ? 'active' : ''}"
                                 data-new-leg="{match.gameState.newLegStarted}">
                                 {playerMap.get(match.playerIds.get(1)).name}
-                                – Punktestand: <span class="score">{match.scores.get(match.playerIds.get(1))}</span>
                                 – Average: <span class="score">{match.getPlayerAverage(match.playerIds.get(1))}</span>
                                 – Gesamt Würfe: <span class="score">{match.getThrows(match.playerIds.get(1))}</span>
-                                – Gewonne Legs: <span class="score">{match.wonLegs.get(match.playerIds.get(1))}</span>
                             </li>
                         </div>
                         <div class="team team-2">
-                            <h3>Team 2</h3>
-                            <!-- Letzte zwei Spieler sind Team 2 -->
+                            <h3>TEAM 2 <span class="team-stats">- Punktestand: <span class="score">{match.scores.get(match.playerIds.get(2))}</span>
+            - Gewonne Legs: <span class="score">{match.wonLegs.get(match.playerIds.get(2))}</span></span></h3>
                             <li class="{match.playerIds.get(2) == match.gameState.currentplayerId ? 'active' : ''}"
                                 data-new-leg="{match.gameState.newLegStarted}">
                                 {playerMap.get(match.playerIds.get(2)).name}
-                                – Punktestand: <span class="score">{match.scores.get(match.playerIds.get(2))}</span>
                                 – Average: <span class="score">{match.getPlayerAverage(match.playerIds.get(2))}</span>
                                 – Gesamt Würfe: <span class="score">{match.getThrows(match.playerIds.get(2))}</span>
-                                – Gewonne Legs: <span class="score">{match.wonLegs.get(match.playerIds.get(2))}</span>
                             </li>
                             <li class="{match.playerIds.get(3) == match.gameState.currentplayerId ? 'active' : ''}"
                                 data-new-leg="{match.gameState.newLegStarted}">
                                 {playerMap.get(match.playerIds.get(3)).name}
-                                – Punktestand: <span class="score">{match.scores.get(match.playerIds.get(3))}</span>
                                 – Average: <span class="score">{match.getPlayerAverage(match.playerIds.get(3))}</span>
                                 – Gesamt Würfe: <span class="score">{match.getThrows(match.playerIds.get(3))}</span>
-                                – Gewonne Legs: <span class="score">{match.wonLegs.get(match.playerIds.get(3))}</span>
                             </li>
                         </div>
                     </div>
+
                 {#else}
                     {#for playerId in match.playerIds}
                         <li class="{playerId == match.gameState.currentplayerId ? 'active' : ''}"
