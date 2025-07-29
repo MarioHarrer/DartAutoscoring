@@ -20,6 +20,8 @@ public class Match {
     private final boolean isTeamMode;
 
 
+    private final Map<UUID, UUID> playerTeamMap = new HashMap<>(); // Speichert die Team-Zuordnung
+
     public Match(List<UUID> playerIds, MatchMode mode, MatchConfig matchConfig, boolean isTeamMode) {
         this.playerIds = playerIds;
         this.mode = mode;
@@ -27,13 +29,70 @@ public class Match {
         this.gameState = new GameState(playerIds);
         this.isTeamMode = isTeamMode;
 
+        if (isTeamMode && playerIds.size() == 4) {
+            // Team 1: Spieler 0 und 1
+            playerTeamMap.put(playerIds.get(0), playerIds.get(0)); // Team-Leader ist erster Spieler
+            playerTeamMap.put(playerIds.get(1), playerIds.get(0));
+
+            // Team 2: Spieler 2 und 3
+            playerTeamMap.put(playerIds.get(2), playerIds.get(2)); // Team-Leader ist dritter Spieler
+            playerTeamMap.put(playerIds.get(3), playerIds.get(2));
+        }
+
         int startScore = (mode.getType() == MatchModeType.MODE_501) ? 501 : 0;
+
         for (UUID playerId : playerIds) {
             scores.put(playerId, startScore);
             playerThrows.put(playerId, new ArrayList<>());
             wonLegs.put(playerId, 0);
         }
     }
+
+    public int getScore(UUID playerId) {
+        if (isTeamMode) {
+            return scores.get(playerTeamMap.get(playerId));
+        }
+        return scores.get(playerId);
+    }
+
+    public void setScore(UUID playerId, int score) {
+        if (isTeamMode) {
+            UUID teamLeader = playerTeamMap.get(playerId);
+            scores.put(teamLeader, score);
+            // Aktualisiere auch den Score des Teammitglieds
+            for (UUID pid : playerIds) {
+                if (playerTeamMap.get(pid).equals(teamLeader)) {
+                    scores.put(pid, score);
+                }
+            }
+        } else {
+            scores.put(playerId, score);
+        }
+    }
+
+    public int getWonLegs(UUID playerId) {
+        if (isTeamMode) {
+            return wonLegs.get(playerTeamMap.get(playerId));
+        }
+        return wonLegs.get(playerId);
+    }
+
+    public void addWonLeg(UUID playerId) {
+        if (isTeamMode) {
+            UUID teamLeader = playerTeamMap.get(playerId);
+            wonLegs.merge(teamLeader, 1, Integer::sum);
+            // Aktualisiere auch die Legs des Teammitglieds
+            for (UUID pid : playerIds) {
+                if (playerTeamMap.get(pid).equals(teamLeader)) {
+                    wonLegs.put(pid, wonLegs.get(teamLeader));
+                }
+            }
+        } else {
+            wonLegs.merge(playerId, 1, Integer::sum);
+        }
+    }
+
+
 
 
     public double getPlayerAverage(UUID playerId) {
@@ -125,7 +184,7 @@ public class Match {
                .orElse(null);
     }*/
 
-    public void addWonLeg(UUID playerId){
+    /*public void addWonLeg(UUID playerId){
         wonLegs.merge(playerId, 1, Integer::sum);
-    }
+    }*/
 }

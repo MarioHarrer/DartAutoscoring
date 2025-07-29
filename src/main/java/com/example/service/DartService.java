@@ -62,7 +62,7 @@ public class DartService {
 
         if (firstThrow(playerId) && !validStartThrow(throwResult)) {
             gameState.setThrowsleft(gameState.getThrowsleft() - 1);
-            currentMatch.getPlayerThrows().get(playerId).add(0);                    //Den Wurf auch wenn er 0 Punkte hat speichern
+            currentMatch.getPlayerThrows().get(playerId).add(0);
             if (gameState.getThrowsleft() == 0) {
                 nextTurn();
             }
@@ -70,14 +70,14 @@ public class DartService {
         }
 
         int throwscore = throwResult.getScore();
-        int currentScore = currentMatch.getScores().get(playerId);
+        int currentScore = currentMatch.getScore(playerId);
         int newScore = currentScore - throwResult.getScore();
 
         currentMatch.getPlayerThrows().get(playerId).add(throwscore);
 
         if (newScore == 0) {
             if (validEndThrow(throwResult)) {
-                currentMatch.getScores().put(playerId, 0);
+                currentMatch.setScore(playerId, 0);
                 gameState.setGameover(true);
 
                 currentMatch.addWonLeg(playerId);
@@ -89,7 +89,6 @@ public class DartService {
                 }
                 return;
             } else {
-                // Ungültiger Checkout-Versuch
                 gameState.setThrowsleft(gameState.getThrowsleft() - 1);
                 if (gameState.getThrowsleft() == 0) {
                     nextTurn();
@@ -98,11 +97,10 @@ public class DartService {
             }
         }
 
-
         if (newScore < 0) {
             gameState.setThrowsleft(gameState.getThrowsleft() - 1);
         } else {
-            currentMatch.getScores().put(playerId, newScore);
+            currentMatch.setScore(playerId, newScore);
             gameState.setThrowsleft(gameState.getThrowsleft() - 1);
 
             if (newScore == 0) {
@@ -114,6 +112,7 @@ public class DartService {
             nextTurn();
         }
     }
+
 
     private boolean isValidThrow(UUID playerId, ThrowResult throwResult) {
         GameState gamestate = match.getGameState();

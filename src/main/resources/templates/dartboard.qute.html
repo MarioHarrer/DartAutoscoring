@@ -510,8 +510,8 @@
                 {#if match.isTeamMode}
                     <div class="team-display">
                         <div class="team team-1">
-                            <h3>TEAM 1 <span class="team-stats">- Punktestand: <span class="score">{match.scores.get(match.playerIds.get(0))}</span>
-            - Gewonne Legs: <span class="score">{match.wonLegs.get(match.playerIds.get(0))}</span></span></h3>
+                            <h3>TEAM 1 <span class="team-stats">- Punktestand: <span class="score">{match.getScore(match.playerIds.get(0))}</span>
+            - Gewonne Legs: <span class="score">{match.getWonLegs(match.playerIds.get(0))}</span></span></h3>
                             <li class="{match.playerIds.get(0) == match.gameState.currentplayerId ? 'active' : ''}"
                                 data-new-leg="{match.gameState.newLegStarted}">
                                 {playerMap.get(match.playerIds.get(0)).name}
@@ -526,8 +526,8 @@
                             </li>
                         </div>
                         <div class="team team-2">
-                            <h3>TEAM 2 <span class="team-stats">- Punktestand: <span class="score">{match.scores.get(match.playerIds.get(2))}</span>
-            - Gewonne Legs: <span class="score">{match.wonLegs.get(match.playerIds.get(2))}</span></span></h3>
+                            <h3>TEAM 2 <span class="team-stats">- Punktestand: <span class="score">{match.getScore(match.playerIds.get(2))}</span>
+            - Gewonne Legs: <span class="score">{match.getWonLegs(match.playerIds.get(2))}</span></span></h3>
                             <li class="{match.playerIds.get(2) == match.gameState.currentplayerId ? 'active' : ''}"
                                 data-new-leg="{match.gameState.newLegStarted}">
                                 {playerMap.get(match.playerIds.get(2)).name}
@@ -542,23 +542,19 @@
                             </li>
                         </div>
                     </div>
-
                 {#else}
                     {#for playerId in match.playerIds}
                         <li class="{playerId == match.gameState.currentplayerId ? 'active' : ''}"
                             data-new-leg="{match.gameState.newLegStarted}">
                             {playerMap.get(playerId).name}
-                            – Punktestand: <span class="score">{match.scores.get(playerId)}</span>
+                            – Punktestand: <span class="score">{match.getScore(playerId)}</span>
                             – Average: <span class="score">{match.getPlayerAverage(playerId)}</span>
                             – Gesamt Würfe: <span class="score">{match.getThrows(playerId)}</span>
-                            – Gewonne Legs: <span class="score">{match.wonLegs.get(playerId)}</span>
+                            – Gewonne Legs: <span class="score">{match.getWonLegs(playerId)}</span>
                         </li>
                     {/for}
                 {/if}
             </ul>
-
-
-
         </div>
 
         <!-- Rechte Hälfte -->
@@ -598,3 +594,4 @@
 {/if}
 </body>
 </html>
+
