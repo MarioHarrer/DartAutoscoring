@@ -331,13 +331,6 @@
             border-bottom: 3px solid #dee2e6;
         }
 
-        .team-1 > h3 {
-            color: #d32f2f;  /* Rötlicher Farbton für Team 1 */
-        }
-
-        .team-2 > h3 {
-            color: #388e3c;  /* Grünlicher Farbton für Team 2 */
-        }
 
         .team-stats {
             font-size: 1.2rem;
@@ -422,7 +415,7 @@
                 <h3>501 Einstellungen</h3>
                 <div class ="team-mode">
                     <label>
-                        <input type="checkbox" id="teamModeCheckbox" name="teamMode"> Team-Modus (4 Spieler)
+                        <input type="checkbox" id="teamModeCheckbox" name="teamMode" value="true"> Team-Modus (4 Spieler)
                     </label>
                 </div>
 
@@ -514,7 +507,7 @@
             <p>Aktueller Spieler: {playerMap.get(match.gameState.currentplayerId).name}</p>
             <p>Verbleibende Würfe: {match.gameState.throwsleft}</p>
             <ul class="players-list">
-                {#if match.playerIds.size == 4}
+                {#if match.isTeamMode}
                     <div class="team-display">
                         <div class="team team-1">
                             <h3>TEAM 1 <span class="team-stats">- Punktestand: <span class="score">{match.scores.get(match.playerIds.get(0))}</span>

@@ -17,13 +17,15 @@ public class Match {
     private final Map<UUID, List<Integer>> playerThrows = new HashMap<>();
     private final MatchConfig matchConfig;
     private final Map<UUID, Integer> wonLegs = new HashMap<>();
+    private final boolean isTeamMode;
 
 
-    public Match(List<UUID> playerIds, MatchMode mode, MatchConfig matchConfig) {
+    public Match(List<UUID> playerIds, MatchMode mode, MatchConfig matchConfig, boolean isTeamMode) {
         this.playerIds = playerIds;
         this.mode = mode;
         this.matchConfig = matchConfig;
         this.gameState = new GameState(playerIds);
+        this.isTeamMode = isTeamMode;
 
         int startScore = (mode.getType() == MatchModeType.MODE_501) ? 501 : 0;
         for (UUID playerId : playerIds) {
@@ -32,6 +34,7 @@ public class Match {
             wonLegs.put(playerId, 0);
         }
     }
+
 
     public double getPlayerAverage(UUID playerId) {
         List<Integer> shoots = this.playerThrows.get(playerId);

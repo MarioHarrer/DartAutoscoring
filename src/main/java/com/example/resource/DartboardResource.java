@@ -57,6 +57,7 @@ public class DartboardResource {
                                @FormParam("endMode") EndMode endMode,
                                @FormParam("gameType") GameType gameType,
                                @FormParam("rounds") int rounds,
+                               @FormParam("teamMode") boolean teamMode,
                                @FormParam("team1Players") List<UUID> team1Players,
                                @FormParam("team2Players") List<UUID> team2Players) {
         if (playerIds.isEmpty() || playerIds.size() > 4) {
@@ -67,18 +68,19 @@ public class DartboardResource {
         MatchConfig matchConfig = new MatchConfig(gameType, rounds);
 
         // Wenn Team-Spieler ausgewählt wurden, verwende diese Reihenfolge
-        if (team1Players != null && !team1Players.isEmpty() &&
+        if (teamMode && team1Players != null && !team1Players.isEmpty() &&
                 team2Players != null && !team2Players.isEmpty()) {
             List<UUID> orderedPlayers = new ArrayList<>();
             orderedPlayers.addAll(team1Players);
             orderedPlayers.addAll(team2Players);
-            dartService.startNewMatch(orderedPlayers, matchMode, matchConfig);
+            dartService.startNewMatch(orderedPlayers, matchMode, matchConfig, true);
         } else {
-            dartService.startNewMatch(playerIds, matchMode, matchConfig);
+            dartService.startNewMatch(playerIds, matchMode, matchConfig, false);
         }
 
         return Response.seeOther(URI.create("/dartboard")).build();
     }
+
 
 
     @POST

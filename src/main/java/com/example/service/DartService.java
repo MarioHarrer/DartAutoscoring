@@ -41,8 +41,8 @@ public class DartService {
                 .collect(Collectors.toMap(Player::getId, player -> player));
     }
 
-    public void startNewMatch(List<UUID> playerIds, MatchMode mode, MatchConfig matchConfig) {
-        this.match = new Match(playerIds, mode, matchConfig);
+    public void startNewMatch(List<UUID> playerIds, MatchMode mode, MatchConfig matchConfig, boolean isTeamMode) {
+        this.match = new Match(playerIds, mode, matchConfig, isTeamMode);
     }
 
     public Match getMatch() {
