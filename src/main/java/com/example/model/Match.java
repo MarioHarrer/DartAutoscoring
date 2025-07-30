@@ -26,7 +26,7 @@ public class Match {
         this.playerIds = playerIds;
         this.mode = mode;
         this.matchConfig = matchConfig;
-        this.gameState = new GameState(playerIds);
+        this.gameState = new GameState(playerIds, isTeamMode);
         this.isTeamMode = isTeamMode;
 
         if (isTeamMode && playerIds.size() == 4) {
