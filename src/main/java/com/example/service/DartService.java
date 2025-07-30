@@ -206,25 +206,25 @@ public class DartService {
     }
 
 
-    public void deleteLastThrow(UUID playerId){
+    public void deleteLastThrow(UUID playerId) {
         Match currentmatch = getMatch();
         GameState gameState = currentmatch.getGameState();
         List<Integer> playerThrows = currentmatch.getPlayerThrows().get(playerId);
 
-        if(gameState.isLastreset()){
+        if (gameState.isLastreset()) {
             return;
         }
 
-        if(playerThrows.isEmpty() || gameState.getThrowsleft() == 3){
-            //vorherigen Spieler
+        if (playerThrows.isEmpty() || gameState.getThrowsleft() == 3) {
+            // vorherigen Spieler
             int previousPlayerIndex = gameState.getCurrentplayerIndex() - 1;
-            if(previousPlayerIndex < 0){
+            if (previousPlayerIndex < 0) {
                 previousPlayerIndex = gameState.getPlayOrder().size() - 1;
             }
             UUID previousPlayerId = gameState.getPlayOrder().get(previousPlayerIndex);
             List<Integer> previousPlayerThrows = currentmatch.getPlayerThrows().get(previousPlayerId);
 
-            if(!previousPlayerThrows.isEmpty()){
+            if (!previousPlayerThrows.isEmpty()) {
                 int lastThrow = previousPlayerThrows.remove(previousPlayerThrows.size() - 1);
 
                 gameState.setCurrentplayerIndex(previousPlayerIndex);
@@ -232,23 +232,34 @@ public class DartService {
 
                 gameState.setThrowsleft(1);
 
-                if(currentmatch.getMode().getType() == MatchModeType.MODE_501){
-                    int previousPlayerScore = currentmatch.getScores().get(previousPlayerId);
-                    currentmatch.getScores().put(previousPlayerId, previousPlayerScore + lastThrow);
+                if (currentmatch.getMode().getType() == MatchModeType.MODE_501) {
+                    if (currentmatch.isTeamMode()) {
+                        int previousPlayerScore = currentmatch.getScore(previousPlayerId);
+                        currentmatch.setScore(previousPlayerId, previousPlayerScore + lastThrow);
+                    } else {
+                        int previousPlayerScore = currentmatch.getScores().get(previousPlayerId);
+                        currentmatch.getScores().put(previousPlayerId, previousPlayerScore + lastThrow);
+                    }
                 }
             }
         } else {
             int lastThrow = playerThrows.remove(playerThrows.size() - 1);
             gameState.setThrowsleft(gameState.getThrowsleft() + 1);
 
-            if(currentmatch.getMode().getType() == MatchModeType.MODE_501){
-                int currentScore = currentmatch.getScores().get(playerId);
-                currentmatch.getScores().put(playerId, currentScore + lastThrow);
+            if (currentmatch.getMode().getType() == MatchModeType.MODE_501) {
+                if (currentmatch.isTeamMode()) {
+                    int currentScore = currentmatch.getScore(playerId);
+                    currentmatch.setScore(playerId, currentScore + lastThrow);
+                } else {
+                    int currentScore = currentmatch.getScores().get(playerId);
+                    currentmatch.getScores().put(playerId, currentScore + lastThrow);
+                }
             }
         }
 
         gameState.setLastreset(true);
     }
+
 
 
 
