@@ -587,9 +587,14 @@
     <div class="gewinner-Alert">Unentschieden!</div>
 {#else}
     <div class="gewinner-Alert">
-        Gewinner: {playerMap.get(match.gameState.currentplayerId).name}!
+        {#if match.isTeamMode}
+            Gewinner: Team {match.getWinner() == match.playerIds.get(0) ? "1" : "2"}!
+        {#else}
+            Gewinner: {playerMap.get(match.winner).name}!
+        {/if}
     </div>
 {/if}
+
 {/if}
 {/if}
 </body>

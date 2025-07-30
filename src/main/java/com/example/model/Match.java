@@ -171,20 +171,34 @@ public class Match {
         }
     }
 
-    /*public UUID getWinner(){
-        if(!isMatchOver()){
+    public UUID getWinner() {
+        if (!isMatchOver()) {
             return null;
         }
-        if(isDraw()){
+        if (isDraw()) {
             return null;
         }
-       return wonLegs.entrySet().stream()
-               .max(Map.Entry.comparingByValue())
-               .map(Map.Entry::getKey)
-               .orElse(null);
-    }*/
 
-    /*public void addWonLeg(UUID playerId){
-        wonLegs.merge(playerId, 1, Integer::sum);
-    }*/
+        if (isTeamMode) {
+            // Finde den Spieler mit den meisten gewonnenen Legs
+            UUID winningPlayer = wonLegs.entrySet().stream()
+                    .max(Map.Entry.comparingByValue())
+                    .map(Map.Entry::getKey)
+                    .orElse(null);
+
+            // Wenn wir einen Gewinner haben, geben wir sein Team zurück (also seinen Team-Zuordnungs-ID)
+            if (winningPlayer != null) {
+                return playerTeamMap.get(winningPlayer);
+            }
+            return null;
+        } else {
+            // Im Einzelspieler-Modus wie bisher
+            return wonLegs.entrySet().stream()
+                    .max(Map.Entry.comparingByValue())
+                    .map(Map.Entry::getKey)
+                    .orElse(null);
+        }
+    }
+
+
 }
