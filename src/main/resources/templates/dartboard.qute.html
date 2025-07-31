@@ -338,6 +338,14 @@
             margin-left: 1rem;
         }
 
+        .camera-button {
+            background-color: #28a745;
+        }
+
+        .camera-button:hover {
+            background-color: #218838;
+        }
+
 
 
 
@@ -563,6 +571,7 @@
             <div class="control-buttons">
                 <button type="button" id="missButton" class="game-button miss-button">Fehlwurf</button>
                 <button type="button" id="resetButton" class="game-button reset-button">Letzten Wurf rückgängig</button>
+                <button type="button" id="startCameraButton" class="game-button camera-button">Kameras einschalten</button>
                 <form action="/dartboard/match/end" method="post" class="end-match-form">
                     <button type="submit" class="game-button end-match-button">Match beenden</button>
                 </form>

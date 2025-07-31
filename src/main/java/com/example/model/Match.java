@@ -2,6 +2,8 @@ package com.example.model;
 
 import lombok.Getter;
 
+import java.io.*;
+import java.nio.charset.StandardCharsets;
 import java.time.LocalDateTime;
 import java.util.*;
 
@@ -199,6 +201,109 @@ public class Match {
                     .orElse(null);
         }
     }
+
+
+   /* public void startKameraTest() {
+        try {
+            String projectPath = System.getProperty("user.dir");
+            String scriptPath = projectPath + "/camera/kamera_test.py";
+
+            ProcessBuilder processBuilder = new ProcessBuilder("python", scriptPath);
+            processBuilder.redirectErrorStream(true);
+
+            System.out.println("Starte Python-Skript: " + scriptPath);
+            Process process = processBuilder.start();
+
+            // Schreiben zum Python-Skript
+            try (BufferedWriter writer = new BufferedWriter(
+                    new OutputStreamWriter(process.getOutputStream()));
+                 BufferedReader reader = new BufferedReader(
+                         new InputStreamReader(process.getInputStream()))) {
+
+                // Beispiel: Senden von Befehlen an das Python-Skript
+                writer.write("start");
+                writer.newLine();
+                writer.flush();
+
+                // Lesen der Antworten
+                String line;
+                while ((line = reader.readLine()) != null) {
+                    System.out.println("Python-Ausgabe: " + line);
+                    // Verarbeitung der Python-Ausgabe
+                }
+            }
+
+            int exitCode = process.waitFor();
+            if (exitCode != 0) {
+                throw new IOException("Python-Skript wurde mit Fehlercode beendet: " + exitCode);
+            }
+
+        } catch (IOException | InterruptedException e) {
+            System.err.println("Fehler beim Ausführen des Python-Skripts: " + e.getMessage());
+            throw new RuntimeException(e);
+        }
+    }*/
+
+    //Absoluter path:
+
+
+    public void startKameraTest() {
+    try {
+        // Absoluter Pfad
+        String scriptPath = "C:\\Users\\harrerm\\IdeaProjects\\DartAutoscoring\\camera\\kamera_test.py";
+
+        File scriptFile = new File(scriptPath);
+        if (!scriptFile.exists()) {
+            System.err.println("Python-Skript nicht gefunden: " + scriptPath);
+            return;
+        }
+
+        System.out.println("Versuche Python-Skript zu starten von: " + scriptPath);
+
+        ProcessBuilder processBuilder = new ProcessBuilder("python", scriptPath);
+        // Arbeitsverzeichnis setzen
+        processBuilder.directory(new File("C:\\Users\\harrerm\\IdeaProjects\\DartAutoscoring\\camera"));
+        processBuilder.redirectErrorStream(true);
+
+        System.out.println("Starte Python-Skript...");
+        Process process = processBuilder.start();
+
+        // Separate Threads für Ein- und Ausgabe
+        Thread outputThread = new Thread(() -> {
+            try (BufferedReader reader = new BufferedReader(
+                    new InputStreamReader(process.getInputStream(), StandardCharsets.UTF_8))) {
+                String line;
+                while ((line = reader.readLine()) != null) {
+                    System.out.println("Python-Ausgabe: " + line);
+                }
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+        });
+        outputThread.start();
+
+        try (BufferedWriter writer = new BufferedWriter(
+                new OutputStreamWriter(process.getOutputStream()))) {
+            writer.write("start");
+            writer.newLine();
+            writer.flush();
+        }
+
+        int exitCode = process.waitFor();
+        System.out.println("Python-Skript beendet mit Code: " + exitCode);
+        if (exitCode != 0) {
+            System.err.println("Python-Skript wurde mit Fehlercode beendet: " + exitCode);
+        }
+
+    } catch (IOException | InterruptedException e) {
+        System.err.println("Fehler beim Ausführen des Python-Skripts: " + e.getMessage());
+        e.printStackTrace();
+    }
+}
+
+
+
+
 
 
 }

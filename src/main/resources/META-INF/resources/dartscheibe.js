@@ -376,6 +376,31 @@ document.getElementById("resetButton").addEventListener("click", async function(
 });
 
 
+document.getElementById('startCameraButton').addEventListener('click', function() {
+    fetch('/dartboard/startCamera', {
+        method: 'POST',
+    })
+        .then(response => {
+            if (!response.ok) {
+                throw new Error('Netzwerkantwort war nicht ok');
+            }
+            Swal.fire({
+                title: 'Erfolg!',
+                text: 'Kameras wurden erfolgreich gestartet',
+                icon: 'success',
+                confirmButtonText: 'OK'
+            });
+        })
+        .catch(error => {
+            Swal.fire({
+                title: 'Fehler!',
+                text: 'Fehler beim Starten der Kameras: ' + error.message,
+                icon: 'error',
+                confirmButtonText: 'OK'
+            });
+        });
+});
+
 
 
 

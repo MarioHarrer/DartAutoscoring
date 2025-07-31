@@ -77,7 +77,6 @@ public class DartboardResource {
         } else {
             dartService.startNewMatch(playerIds, matchMode, matchConfig, false);
         }
-
         return Response.seeOther(URI.create("/dartboard")).build();
     }
 
@@ -148,4 +147,14 @@ public class DartboardResource {
         dartService.deletePlayer(id);
         return Response.ok().build();
     }
+
+    @POST
+    @Path("/startCamera")
+    public Response startCamera() {
+        Match currentMatch = dartService.getMatch();
+        currentMatch.startKameraTest();
+        return Response.ok().build();
+    }
+
+
 }
