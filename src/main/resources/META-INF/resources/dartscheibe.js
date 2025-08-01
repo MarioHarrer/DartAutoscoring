@@ -384,7 +384,7 @@ document.getElementById('startCameraButton').addEventListener('click', function(
             if (!response.ok) {
                 throw new Error('Netzwerkantwort war nicht ok');
             }
-            Swal.fire({
+            /*Swal.fire({
                 title: 'Erfolg!',
                 text: 'Kameras wurden erfolgreich gestartet',
                 icon: 'success',
@@ -398,8 +398,30 @@ document.getElementById('startCameraButton').addEventListener('click', function(
                 icon: 'error',
                 confirmButtonText: 'OK'
             });
-        });
+        });*/
+        })
 });
+
+
+const socket = new WebSocket(`ws://${window.location.host}/websocket/dartboard`);
+
+socket.onmessage = function(event) {
+    const data = JSON.parse(event.data);
+
+    if (data.type === "throwRegistered") {
+        if (data.showAlert) {
+            Swal.fire({
+                title: data.alertTitle,
+                text: data.alertText,
+                icon: data.alertIcon,
+                confirmButtonText: 'OK'
+            }).then(() => {
+                window.location.reload();
+            });
+        }
+    }
+};
+
 
 
 

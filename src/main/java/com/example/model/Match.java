@@ -260,6 +260,32 @@ public class Match {
 
         System.out.println("Versuche Python-Skript zu starten von: " + scriptPath);
 
+
+        try {
+            ProcessBuilder processBuilder = new ProcessBuilder(
+                    "python", "-m", "pip", "install", "requests"
+            );
+            processBuilder.redirectErrorStream(true);
+            Process process = processBuilder.start();
+
+            // Ausgabe lesen
+            BufferedReader reader = new BufferedReader(
+                    new InputStreamReader(process.getInputStream())
+            );
+            String line;
+            while ((line = reader.readLine()) != null) {
+                System.out.println(line);
+            }
+
+            int exitCode = process.waitFor();
+            System.out.println("Prozess beendet mit Code: " + exitCode);
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+
+
+
+
         ProcessBuilder processBuilder = new ProcessBuilder("python", scriptPath);
         // Arbeitsverzeichnis setzen
         processBuilder.directory(new File("C:\\Users\\harrerm\\IdeaProjects\\DartAutoscoring\\camera"));

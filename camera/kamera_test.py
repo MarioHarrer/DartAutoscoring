@@ -3,6 +3,7 @@ import time
 import numpy as np
 import sys
 from functools import partial
+import requests
 
 def get_available_cameras(max_tested=6):
     available = []
@@ -198,7 +199,7 @@ def run_manual_confirm_mode(cap):
     prev = None
     ready_for_next = True
 
-    print("Starte Bewegungserkennung mit manueller Bestätigung ('n' zum Fortfahren)...")
+    print("Starte automatische Bewegungserkennung mit Bestätigung...")
     sys.stdout.flush()
 
     while True:
@@ -232,21 +233,69 @@ def run_manual_confirm_mode(cap):
                 cv2.imshow("Unterschied erkannt", new_frame)
                 cv2.imshow("Differenzbild", thresh)
 
-                print("Warte auf Bestätigung... Drücke 'n' zum Fortfahren oder 'q' zum Beenden.")
-                sys.stdout.flush()
-                while True:
-                    key = cv2.waitKey(0) & 0xFF
-                    if key == ord('n'):
-                        print("Weiter zur nächsten Bewegungserkennung...")
-                        sys.stdout.flush()
-                        ready_for_next = True
-                        break
-                    elif key == ord('q'):
+                # Erstelle ein Fenster mit Buttons
+                confirm_window = np.zeros((200, 400, 3), np.uint8)
+                # Zeichne Buttons
+                cv2.rectangle(confirm_window, (50, 50), (150, 100), (0, 255, 0), -1)  # Grüner "Ja" Button
+                cv2.rectangle(confirm_window, (250, 50), (350, 100), (0, 0, 255), -1)  # Roter "Nein" Button
+                # Füge Text hinzu
+                cv2.putText(confirm_window, "20 Punkte akzeptieren?", (100, 30),
+                            cv2.FONT_HERSHEY_SIMPLEX, 0.7, (255, 255, 255), 2)
+                cv2.putText(confirm_window, "Ja", (85, 85),
+                            cv2.FONT_HERSHEY_SIMPLEX, 0.7, (0, 0, 0), 2)
+                cv2.putText(confirm_window, "Nein", (285, 85),
+                            cv2.FONT_HERSHEY_SIMPLEX, 0.7, (255, 255, 255), 2)
+
+                cv2.imshow("Wurf bestätigen", confirm_window)
+
+                # Mausklick-Callback-Funktion
+                def mouse_callback(event, x, y, flags, param):
+                    if event == cv2.EVENT_LBUTTONDOWN:
+                        if 50 <= x <= 150 and 50 <= y <= 100:  # Ja-Button geklickt
+                            try:
+                                response = requests.post('http://localhost:8080/dartboard/throw',
+                                                         data={
+                                                             "score": 20,
+                                                             "isDouble": False,
+                                                             "isTriple": False
+                                                         },
+                                                         headers={
+                                                             "Content-Type": "application/x-www-form-urlencoded"
+                                                         })
+
+                                if response.status_code == 200:
+                                    print("20 Punkte wurden erfolgreich registriert!")
+                                else:
+                                    print("Fehler beim Registrieren der Punkte!")
+                            except Exception as e:
+                                print(f"Fehler beim Senden der Punkte: {str(e)}")
+
+                            cv2.setMouseCallback("Wurf bestätigen", lambda *args: None)
+                            cv2.destroyWindow("Wurf bestätigen")
+                            cv2.destroyWindow("Unterschied erkannt")
+                            cv2.destroyWindow("Differenzbild")
+                            param[0] = True  # Signal zum Fortfahren
+
+                        elif 250 <= x <= 350 and 50 <= y <= 100:  # Nein-Button geklickt
+                            cv2.setMouseCallback("Wurf bestätigen", lambda *args: None)
+                            cv2.destroyWindow("Wurf bestätigen")
+                            cv2.destroyWindow("Unterschied erkannt")
+                            cv2.destroyWindow("Differenzbild")
+                            param[0] = True  # Signal zum Fortfahren
+
+                # Setze Mouse-Callback und warte auf Klick
+                button_clicked = [False]
+                cv2.setMouseCallback("Wurf bestätigen", mouse_callback, button_clicked)
+                while not button_clicked[0]:
+                    if cv2.waitKey(1) & 0xFF == ord('q'):
                         cap.release()
                         cv2.destroyAllWindows()
-                        print("Modus beendet.")
-                        sys.stdout.flush()
                         return
+
+                ready_for_next = True
+
+            elif not movement:
+                ready_for_next = True
 
         prev = frame
         cv2.imshow("Live", frame)
@@ -255,6 +304,19 @@ def run_manual_confirm_mode(cap):
 
     cap.release()
     cv2.destroyAllWindows()
+
+
+
+
+
+
+# Hilfsfunktion zum Registrieren der Punkte
+def register_points(points):
+    # Hier implementieren Sie die Logik, die normalerweise
+    # durch den Mausklick auf die Dartscheibe ausgelöst wird
+    print(f"{points} Punkte wurden zum Spielstand hinzugefügt!")
+    sys.stdout.flush()
+
 
 def main():
     all_cams = get_available_cameras()
