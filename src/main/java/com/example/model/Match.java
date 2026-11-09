@@ -62,6 +62,70 @@ public class Match {
         return scores.get(playerId);
     }
 
+    // ===== Hilfsmethoden für die Anzeige im Template =====
+
+    public boolean isAroundTheClock() {
+        return mode.getType() == MatchModeType.MODE_AROUND_THE_CLOCK;
+    }
+
+    public String getModeLabel() {
+        return isAroundTheClock() ? "Around the Clock" : "501";
+    }
+
+    // Kleine Info-Kennzeichen unter dem Modus, z.B. "Straight In", "Double Out", "First to 3"
+    public List<String> getModeChips() {
+        List<String> chips = new ArrayList<>();
+        if (!isAroundTheClock()) {
+            chips.add(enumLabel(mode.getStartMode().name()));
+            chips.add(enumLabel(mode.getEndMode().name()));
+        }
+        if (matchConfig != null) {
+            String type = matchConfig.getGameType() == GameType.BEST_OF ? "Best of " : "First to ";
+            chips.add(type + matchConfig.getTargetvalue());
+        }
+        return chips;
+    }
+
+    // STRAIGHT_IN -> "Straight In"
+    private static String enumLabel(String name) {
+        StringBuilder sb = new StringBuilder();
+        for (String part : name.split("_")) {
+            if (sb.length() > 0) sb.append(' ');
+            sb.append(part.charAt(0)).append(part.substring(1).toLowerCase());
+        }
+        return sb.toString();
+    }
+
+    // Team 1 = Spieler 0+1, Team 2 = Spieler 2+3 (erster Spieler ist der Team-Leader)
+    public List<List<UUID>> getTeams() {
+        if (!isTeamMode || playerIds.size() != 4) {
+            return List.of();
+        }
+        return List.of(playerIds.subList(0, 2), playerIds.subList(2, 4));
+    }
+
+    public int getCurrentLeg() {
+        return gameState.getLegCounter() + 1;
+    }
+
+    // Anzahl Legs, die zum Matchgewinn nötig sind (für die Leg-Punkte)
+    public int getLegsToWin() {
+        if (matchConfig == null || matchConfig.getTargetvalue() <= 0) {
+            return 1;
+        }
+        if (matchConfig.getGameType() == GameType.BEST_OF) {
+            return matchConfig.getTargetvalue() / 2 + 1;
+        }
+        return matchConfig.getTargetvalue();
+    }
+
+    // ATC-Fortschritt in Prozent: Ziel 1 = 0 %, Bull = 20/21, Leg gewonnen = 100 %
+    public int getAtcProgress(UUID playerId) {
+        int target = getScore(playerId);
+        int done = target == ModeATCStrategy.BULL ? ModeATCStrategy.LAST_NUMBER : target - 1;
+        return (int) Math.round(done * 100.0 / (ModeATCStrategy.LAST_NUMBER + 1));
+    }
+
     // Punktestand bzw. Ziel-Zahl für die Anzeige (ATC: "Bull" statt 25)
     public String getScoreLabel(UUID playerId) {
         int score = getScore(playerId);
