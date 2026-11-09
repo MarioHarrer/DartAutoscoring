@@ -122,11 +122,10 @@ public class DartboardResource {
     @Produces(MediaType.APPLICATION_JSON)
     public Response resetMatch() {
         try {
-            UUID currentPlayerId = dartService.getMatch().getGameState().getCurrentplayerId();
-            if (dartService.getMatch().getGameState().isLastreset()) {
+            // 204 = nichts zurückgesetzt (bereits zurückgesetzt oder noch kein Wurf)
+            if (!dartService.deleteLastThrow()) {
                 return Response.status(204).build();
             }
-            dartService.deleteLastThrow(currentPlayerId);
             return Response.ok().build();
         } catch (IllegalArgumentException e) {
             throw new WebApplicationException(e.getMessage(), 400);

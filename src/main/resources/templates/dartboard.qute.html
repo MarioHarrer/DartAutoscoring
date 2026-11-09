@@ -480,18 +480,19 @@
                                 <option value ="FIRST_TO">First to</option>
                             </select>
                         </div>
-                        <div class ="mode-setting">
-                            <h4>Anzahl Runden</h4>
-                            <input type ="text" name="rounds" min="1" required>
-                        </div>
+
                     </div>
                 </div>
             </div>
 
             <div id="clockConfig" class="modeConfig" style="display: none;">
                 <h3>Around the Clock Einstellungen</h3>
-            </div>
 
+            </div>
+            <div class ="mode-setting">
+                <h4>Anzahl Runden</h4>
+                <input type ="text" name="rounds" min="1" required>
+            </div>
 
             <button type="submit" id="startMatchButton">Match starten</button>
         </div>
@@ -507,8 +508,10 @@
         <div class="match-info">
             <h2>Aktives Match</h2>
             <p>Modus: {match.mode.type}</p>
+            {#if match.mode.type.name() != 'MODE_AROUND_THE_CLOCK'}
             <p startmode="{match.mode.startMode}">Startmodus: {match.mode.startMode}</p>
             <p endmode="{match.mode.endMode}">Endmodus: {match.mode.endMode}</p>
+            {/if}
             <p>Spieltyp: {match.matchConfig.gameType}</p>
             <p>Legs: {match.matchConfig.targetvalue}</p>
             <hr>
@@ -518,34 +521,40 @@
                 {#if match.isTeamMode}
                     <div class="team-display">
                         <div class="team team-1">
-                            <h3>TEAM 1 <span class="team-stats">- Punktestand: <span class="score">{match.getScore(match.playerIds.get(0))}</span>
-            - Gewonne Legs: <span class="score">{match.getWonLegs(match.playerIds.get(0))}</span></span></h3>
+                            <h3>TEAM 1 <span class="team-stats">
+                                {#if match.mode.type.name() == 'MODE_AROUND_THE_CLOCK'} Ziel-Zahl: {#else} Punktestand: {/if}
+<span class="score">{match.getScoreLabel(match.playerIds.get(0))}</span>
+-             Gewonne Legs:
+<span class="score">{match.getWonLegs(match.playerIds.get(0))}</span></span></h3>
                             <li class="{match.playerIds.get(0) == match.gameState.currentplayerId ? 'active' : ''}"
                                 data-new-leg="{match.gameState.newLegStarted}">
                                 {playerMap.get(match.playerIds.get(0)).name}
-                                – Average: <span class="score">{match.getPlayerAverage(match.playerIds.get(0))}</span>
+                                – {#if match.mode.type.name() == 'MODE_AROUND_THE_CLOCK'}Trefferquote: <span class="score">{match.getHitRate(match.playerIds.get(0))} %</span>{#else}Average: <span class="score">{match.getPlayerAverage(match.playerIds.get(0))}</span>{/if}
                                 – Gesamt Würfe: <span class="score">{match.getThrows(match.playerIds.get(0))}</span>
                             </li>
                             <li class="{match.playerIds.get(1) == match.gameState.currentplayerId ? 'active' : ''}"
                                 data-new-leg="{match.gameState.newLegStarted}">
                                 {playerMap.get(match.playerIds.get(1)).name}
-                                – Average: <span class="score">{match.getPlayerAverage(match.playerIds.get(1))}</span>
+                                – {#if match.mode.type.name() == 'MODE_AROUND_THE_CLOCK'}Trefferquote: <span class="score">{match.getHitRate(match.playerIds.get(1))} %</span>{#else}Average: <span class="score">{match.getPlayerAverage(match.playerIds.get(1))}</span>{/if}
                                 – Gesamt Würfe: <span class="score">{match.getThrows(match.playerIds.get(1))}</span>
                             </li>
                         </div>
                         <div class="team team-2">
-                            <h3>TEAM 2 <span class="team-stats">- Punktestand: <span class="score">{match.getScore(match.playerIds.get(2))}</span>
-            - Gewonne Legs: <span class="score">{match.getWonLegs(match.playerIds.get(2))}</span></span></h3>
+                            <h3>TEAM 2 <span class="team-stats">
+                                {#if match.mode.type.name() == 'MODE_AROUND_THE_CLOCK'} Ziel-Zahl: {#else} Punktestand: {/if}
+<span class="score">{match.getScoreLabel(match.playerIds.get(2))}</span>
+-             Gewonne Legs:
+<span class="score">{match.getWonLegs(match.playerIds.get(2))}</span></span></h3>
                             <li class="{match.playerIds.get(2) == match.gameState.currentplayerId ? 'active' : ''}"
                                 data-new-leg="{match.gameState.newLegStarted}">
                                 {playerMap.get(match.playerIds.get(2)).name}
-                                – Average: <span class="score">{match.getPlayerAverage(match.playerIds.get(2))}</span>
+                                – {#if match.mode.type.name() == 'MODE_AROUND_THE_CLOCK'}Trefferquote: <span class="score">{match.getHitRate(match.playerIds.get(2))} %</span>{#else}Average: <span class="score">{match.getPlayerAverage(match.playerIds.get(2))}</span>{/if}
                                 – Gesamt Würfe: <span class="score">{match.getThrows(match.playerIds.get(2))}</span>
                             </li>
                             <li class="{match.playerIds.get(3) == match.gameState.currentplayerId ? 'active' : ''}"
                                 data-new-leg="{match.gameState.newLegStarted}">
                                 {playerMap.get(match.playerIds.get(3)).name}
-                                – Average: <span class="score">{match.getPlayerAverage(match.playerIds.get(3))}</span>
+                                – {#if match.mode.type.name() == 'MODE_AROUND_THE_CLOCK'}Trefferquote: <span class="score">{match.getHitRate(match.playerIds.get(3))} %</span>{#else}Average: <span class="score">{match.getPlayerAverage(match.playerIds.get(3))}</span>{/if}
                                 – Gesamt Würfe: <span class="score">{match.getThrows(match.playerIds.get(3))}</span>
                             </li>
                         </div>
@@ -555,8 +564,8 @@
                         <li class="{playerId == match.gameState.currentplayerId ? 'active' : ''}"
                             data-new-leg="{match.gameState.newLegStarted}">
                             {playerMap.get(playerId).name}
-                            – Punktestand: <span class="score">{match.getScore(playerId)}</span>
-                            – Average: <span class="score">{match.getPlayerAverage(playerId)}</span>
+                            – {#if match.mode.type.name() == 'MODE_AROUND_THE_CLOCK'} Ziel-Zahl: {#else} Punktestand: {/if} <span class="score">{match.getScoreLabel(playerId)}</span>
+                            – {#if match.mode.type.name() == 'MODE_AROUND_THE_CLOCK'}Trefferquote: <span class="score">{match.getHitRate(playerId)} %</span>{#else}Average: <span class="score">{match.getPlayerAverage(playerId)}</span>{/if}
                             – Gesamt Würfe: <span class="score">{match.getThrows(playerId)}</span>
                             – Gewonne Legs: <span class="score">{match.getWonLegs(playerId)}</span>
                         </li>
@@ -567,7 +576,7 @@
 
         <!-- Rechte Hälfte -->
         <div class="dartboard-section">
-            <svg id="dartboard" viewBox="-250 -250 500 500"></svg>
+            <svg id="dartboard" viewBox="-250 -250 500 500" data-mode="{match.mode.type}" data-history-empty="{match.history.isEmpty()}"></svg>
             <div class="control-buttons">
                 <button type="button" id="missButton" class="game-button miss-button">Fehlwurf</button>
                 <button type="button" id="resetButton" class="game-button reset-button">Letzten Wurf rückgängig</button>

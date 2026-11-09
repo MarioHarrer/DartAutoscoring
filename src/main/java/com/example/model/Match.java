@@ -16,10 +16,14 @@ public class Match {
     private final Map<UUID, Integer> scores = new HashMap<>();
     private final LocalDateTime startedAt = LocalDateTime.now();
     private final GameState gameState;
-    private final Map<UUID, List<Integer>> playerThrows = new HashMap<>();
+    private final Map<UUID, List<ThrowResult>> playerThrows = new HashMap<>();
     private final MatchConfig matchConfig;
     private final Map<UUID, Integer> wonLegs = new HashMap<>();
     private final boolean isTeamMode;
+    private final GameModeStrategy strategy;
+
+    // Zustand vor jedem Wurf, damit "Rückgängig" exakt zurücksetzen kann (auch über Leg-Grenzen)
+    private final Deque<ThrowSnapshot> history = new ArrayDeque<>();
 
 
     private final Map<UUID, UUID> playerTeamMap = new HashMap<>(); // Speichert die Team-Zuordnung
@@ -30,6 +34,7 @@ public class Match {
         this.matchConfig = matchConfig;
         this.gameState = new GameState(playerIds, isTeamMode);
         this.isTeamMode = isTeamMode;
+        this.strategy = GameModeStrategy.forType(mode.getType());
 
         if (isTeamMode && playerIds.size() == 4) {
             // Team 1: Spieler 0 und 1
@@ -41,7 +46,7 @@ public class Match {
             playerTeamMap.put(playerIds.get(3), playerIds.get(2));
         }
 
-        int startScore = (mode.getType() == MatchModeType.MODE_501) ? 501 : 0;
+        int startScore = strategy.getInitialScore();
 
         for (UUID playerId : playerIds) {
             scores.put(playerId, startScore);
@@ -55,6 +60,15 @@ public class Match {
             return scores.get(playerTeamMap.get(playerId));
         }
         return scores.get(playerId);
+    }
+
+    // Punktestand bzw. Ziel-Zahl für die Anzeige (ATC: "Bull" statt 25)
+    public String getScoreLabel(UUID playerId) {
+        int score = getScore(playerId);
+        if (mode.getType() == MatchModeType.MODE_AROUND_THE_CLOCK) {
+            return ModeATCStrategy.targetLabel(score);
+        }
+        return String.valueOf(score);
     }
 
     public void setScore(UUID playerId, int score) {
@@ -98,7 +112,7 @@ public class Match {
 
 
     public double getPlayerAverage(UUID playerId) {
-        List<Integer> shoots = this.playerThrows.get(playerId);
+        List<ThrowResult> shoots = this.playerThrows.get(playerId);
         if (shoots.isEmpty()) {
             return 0.0;
         }
@@ -108,7 +122,7 @@ public class Match {
 
         for (int i = 0; i < roundsof3 * 3; i++) {
             if (shoots.get(i) != null) {
-                total += shoots.get(i);
+                total += shoots.get(i).getScore();
             }
         }
 
@@ -119,6 +133,50 @@ public class Match {
 
     public int getThrows(UUID playerId){
         return playerThrows.get(playerId).size();
+    }
+
+    // Trefferquote in Prozent (für Around the Clock)
+    public int getHitRate(UUID playerId) {
+        long throwsCount = history.stream().filter(s -> s.getPlayerId().equals(playerId)).count();
+        if (throwsCount == 0) {
+            return 0;
+        }
+        long hits = history.stream().filter(s -> s.getPlayerId().equals(playerId) && s.isHit()).count();
+        return (int) Math.round(hits * 100.0 / throwsCount);
+    }
+
+    // Merkt sich den Zustand vor dem Wurf und speichert den Wurf
+    public ThrowSnapshot recordThrow(UUID playerId, ThrowResult throwResult) {
+        ThrowSnapshot snapshot = new ThrowSnapshot(playerId, throwResult, this);
+        history.addLast(snapshot);
+        playerThrows.get(playerId).add(throwResult);
+        return snapshot;
+    }
+
+    // Setzt den Spielzustand auf den Stand vor dem letzten Wurf zurück
+    public boolean undoLastThrow() {
+        ThrowSnapshot snapshot = history.pollLast();
+        if (snapshot == null) {
+            return false;
+        }
+
+        List<ThrowResult> throwsOfPlayer = playerThrows.get(snapshot.getPlayerId());
+        if (!throwsOfPlayer.isEmpty()) {
+            throwsOfPlayer.remove(throwsOfPlayer.size() - 1);
+        }
+
+        scores.clear();
+        scores.putAll(snapshot.getScores());
+        wonLegs.clear();
+        wonLegs.putAll(snapshot.getWonLegs());
+
+        gameState.setCurrentplayerId(snapshot.getCurrentplayerId());
+        gameState.setCurrentplayerIndex(snapshot.getCurrentplayerIndex());
+        gameState.setThrowsleft(snapshot.getThrowsleft());
+        gameState.setLegCounter(snapshot.getLegCounter());
+        gameState.setGameover(snapshot.isGameover());
+        gameState.setNewLegStarted(snapshot.isNewLegStarted());
+        return true;
     }
 
     public boolean isDraw(){

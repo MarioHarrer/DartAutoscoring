@@ -6,16 +6,17 @@ const resetButton = document.getElementById('resetButton');
 const endMatchButton = document.querySelector('.end-match-button');
 
 
-const isNewLegStarted = document.querySelector('li.active').getAttribute('data-new-leg') === 'true';
+// "Rückgängig" funktioniert jetzt auch über Leg-Grenzen und nach dem Siegwurf –
+// gesperrt nur, wenn noch gar kein Wurf existiert
+const noThrowsYet = document.getElementById('dartboard').dataset.historyEmpty === 'true';
 
-if (isNewLegStarted) {
+if (noThrowsYet) {
     resetButton.disabled = true;
 }
 
 if (isGameOver) {
 
     missButton.disabled = true;
-    resetButton.disabled = true;
 
     endMatchButton.style.backgroundColor = '#28a745';
     endMatchButton.style.transform = 'scale(1.05)';
@@ -25,6 +26,34 @@ if (isGameOver) {
 const sectorAngles = Array.from({ length: 20 }, (_, i) => i * 18 - 9);
 const sectorNumbers = [20, 1, 18, 4, 13, 6, 10, 15, 2, 17, 3, 19, 7, 16, 8, 11, 14, 9, 12, 5];
 const svg = document.getElementById("dartboard");
+const isAtcMode = svg.dataset.mode === 'MODE_AROUND_THE_CLOCK';
+
+// Zeigt nach einem gültigen Wurf den Hinweis an.
+// Bei Around the Clock kommt die Meldung (Treffer / Daneben) vom Backend.
+function showThrowToast(title, text, validation) {
+    if (isAtcMode) {
+        const hit = validation.title === 'Treffer!';
+        Swal.fire({
+            title: `${title} – ${validation.title}`,
+            text: validation.text,
+            icon: hit ? 'success' : 'info',
+            toast: true,
+            position: 'top-end',
+            timer: 2000,
+            showConfirmButton: false
+        });
+        return;
+    }
+    Swal.fire({
+        title: title,
+        text: text,
+        icon: 'success',
+        toast: true,
+        position: 'top-end',
+        timer: 2000,
+        showConfirmButton: false
+    });
+}
 
 function polarToCartesian(r, angleDeg) {
     const angleRad = (angleDeg - 90) * Math.PI / 180.0;
@@ -98,15 +127,7 @@ function createRing(startR, endR, ringName) {
                     return;
                 }
 
-                Swal.fire({
-                    title: `${zoneLabel} ${num}`,
-                    text: `${score * multiplier} Punkte`,
-                    icon: 'success',
-                    toast: true,
-                    position: 'top-end',
-                    timer: 2000,
-                    showConfirmButton: false
-                });
+                showThrowToast(`${zoneLabel} ${num}`, `${score * multiplier} Punkte`, validation);
                 sendThrow(score, isDouble, isTriple);
             } catch (error) {
                 console.error("Validierungsfehler:", error);
@@ -150,15 +171,7 @@ bull1.addEventListener("click", async () => {
             sendThrow(0, false, false);
             return;
         }
-        Swal.fire({
-            title: "Outer Bull",
-            text: "25 Punkte",
-            icon: 'success',
-            toast: true,
-            position: 'top-end',
-            timer: 2000,
-            showConfirmButton: false
-        });
+        showThrowToast("Outer Bull", "25 Punkte", validation);
         sendThrow(25, false, false);
     }catch(error){
         console.error("Validierungsfehler:", error);
@@ -176,9 +189,6 @@ bull2.setAttribute("fill", "red");
 bull2.setAttribute("data-score", "bull-50");
 bull2.addEventListener("click", async () => {
 
-    const currentScore = parseInt(document.querySelector('li.active').textContent.split('Punktestand: ')[1]);
-    const newScore = currentScore - 50;
-
     try {
         const validation = await validateThrow(50, true, false);
 
@@ -195,15 +205,7 @@ bull2.addEventListener("click", async () => {
             sendThrow(0, false, false);
             return;
         }
-        Swal.fire({
-            title: "Bullseye!",
-            text: "50 Punkte",
-            icon: 'success',
-            toast: true,
-            position: 'top-end',
-            timer: 2000,
-            showConfirmButton: false
-        });
+        showThrowToast("Bullseye!", "50 Punkte", validation);
         sendThrow(50, true, false);
     }catch(error){
         console.error("Validierungsfehler:", error);
@@ -341,7 +343,7 @@ document.getElementById("resetButton").addEventListener("click", async function(
         if (response.status === 204) { // Wenn der Wurf bereits zurückgesetzt wurde
             Swal.fire({
                 title: "Nicht möglich",
-                text: "Der letzte Wurf wurde bereits zurückgesetzt",
+                text: "Der letzte Wurf wurde bereits zurückgesetzt oder es gibt noch keinen Wurf",
                 icon: 'warning',
                 toast: true,
                 position: 'top-end',

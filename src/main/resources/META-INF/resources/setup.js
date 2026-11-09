@@ -64,7 +64,7 @@ document.addEventListener('DOMContentLoaded', function() {
         if (selectedMode === 'MODE_501') {
             mode501Config.style.display = 'block';
             clockConfig.style.display = 'none';
-        } else {
+        } else if (selectedMode === 'MODE_AROUND_THE_CLOCK'){
             mode501Config.style.display = 'none';
             clockConfig.style.display = 'block';
         }

@@ -49,89 +49,60 @@ public class DartService {
         return match;
     }
 
+    public void endMatch() {
+        if (this.match != null) {
+            this.match = null;
+        }
+    }
+
+    // Gibt die Strategie des aktuellen Matches zurück (wird beim Match-Start festgelegt)
+    private GameModeStrategy getStrategy() {
+        return match.getStrategy();
+    }
+
     public void processThrow(UUID playerId, ThrowResult throwResult) {
-        Match currentMatch = getMatch();
-        GameState gameState = currentMatch.getGameState();
+        GameState gameState = match.getGameState();
+
+        if (!isValidThrow(playerId)) {
+            throw new IllegalArgumentException("Invalid throw");
+        }
+
+        // Zustand vor dem Wurf sichern und Wurf speichern
+        int scoreBefore = match.getScore(playerId);
+        ThrowSnapshot snapshot = match.recordThrow(playerId, throwResult);
 
         gameState.setLastreset(false);
         gameState.setNewLegStarted(false);
 
-        if (!(isValidThrow(playerId, throwResult))) {
-            throw new IllegalArgumentException("Invalid throw");
-        }
+        // Verarbeitung des Wurfs durch die jeweilige Strategie delegieren
+        getStrategy().processThrow(match, playerId, throwResult);
+        snapshot.setHit(gameState.isGameover() || match.getScore(playerId) != scoreBefore);
 
-        if (firstThrow(playerId) && !validStartThrow(throwResult)) {
-            gameState.setThrowsleft(gameState.getThrowsleft() - 1);
-            currentMatch.getPlayerThrows().get(playerId).add(0);
-            if (gameState.getThrowsleft() == 0) {
-                nextTurn();
+        // Check ob Leg beendet ist
+        if (gameState.isGameover()) {
+            if (!match.isMatchOver()) {
+                resetLegScores();
             }
-            return;
+            return; // Leg / Match ist vorbei
         }
 
-        int throwscore = throwResult.getScore();
-        int currentScore = currentMatch.getScore(playerId);
-        int newScore = currentScore - throwResult.getScore();
-
-        currentMatch.getPlayerThrows().get(playerId).add(throwscore);
-
-        if (newScore == 0) {
-            if (validEndThrow(throwResult)) {
-                currentMatch.setScore(playerId, 0);
-                gameState.setGameover(true);
-
-                currentMatch.addWonLeg(playerId);
-
-                if (currentMatch.isMatchOver()) {
-                    return;
-                } else {
-                    resetLegScores();
-                }
-                return;
-            } else {
-                gameState.setThrowsleft(gameState.getThrowsleft() - 1);
-                if (gameState.getThrowsleft() == 0) {
-                    nextTurn();
-                }
-                return;
-            }
-        }
-
-        if (newScore < 0) {
-            gameState.setThrowsleft(gameState.getThrowsleft() - 1);
-        } else {
-            currentMatch.setScore(playerId, newScore);
-            gameState.setThrowsleft(gameState.getThrowsleft() - 1);
-
-            if (newScore == 0) {
-                gameState.setGameover(true);
-            }
-        }
-
-        if (gameState.getThrowsleft() == 0 && !gameState.isGameover()) {
+        // Nächster Spieler wenn keine Würfe mehr übrig sind
+        if (gameState.getThrowsleft() == 0) {
             nextTurn();
         }
     }
 
 
-    private boolean isValidThrow(UUID playerId, ThrowResult throwResult) {
+    private boolean isValidThrow(UUID playerId) {
         GameState gamestate = match.getGameState();
-
-        if (!(playerId.equals(gamestate.getCurrentplayerId()))) {
-            return false;
-        }
-        if (gamestate.getThrowsleft() <= 0) {
-            return false;
-        }
-        if (gamestate.isGameover()) {
-            return false;
-        }
+        if (!(playerId.equals(gamestate.getCurrentplayerId()))) return false;
+        if (gamestate.getThrowsleft() <= 0) return false;
+        if (gamestate.isGameover()) return false;
         return true;
     }
 
     private void nextTurn() {
         GameState gamestate = match.getGameState();
-
         int nextPlayerIndex = (gamestate.getCurrentplayerIndex() + 1) % gamestate.getPlayOrder().size();
         UUID nextPlayerId = gamestate.getPlayOrder().get(nextPlayerIndex);
 
@@ -170,11 +141,7 @@ public class DartService {
         }
     }
 
-    public void endMatch() {
-        if (this.match != null) {
-            this.match = null;
-        }
-    }
+
     /*
     public void handleLeg(UUID winnerId){
         match.addWonLeg(winnerId);
@@ -188,9 +155,11 @@ public class DartService {
     }*/
 
     public void resetLegScores(){
-        int startScore = (match.getMode().getType() == MatchModeType.MODE_501) ? 501 : 0;
+        GameModeStrategy strategy = getStrategy();
+        int startScore = strategy.getInitialScore();
+
         for (UUID playerId : match.getPlayerIds()) {
-            match.getScores().put(playerId, startScore);
+            match.setScore(playerId, startScore);
         }
 
         match.getGameState().setThrowsleft(3);
@@ -206,121 +175,25 @@ public class DartService {
     }
 
 
-    public void deleteLastThrow(UUID playerId) {
-        Match currentmatch = getMatch();
-        GameState gameState = currentmatch.getGameState();
-        List<Integer> playerThrows = currentmatch.getPlayerThrows().get(playerId);
+    // Macht den zuletzt geworfenen Dart rückgängig – egal von welchem Spieler,
+    // auch wenn er ein Leg oder das Match beendet hat
+    public boolean deleteLastThrow() {
+        GameState gameState = match.getGameState();
+        if (gameState.isLastreset()) return false;
 
-        if (gameState.isLastreset()) {
-            return;
+        if (match.undoLastThrow()) {
+            gameState.setLastreset(true);
+            return true;
         }
-
-        if (playerThrows.isEmpty() || gameState.getThrowsleft() == 3) {
-            // vorherigen Spieler
-            int previousPlayerIndex = gameState.getCurrentplayerIndex() - 1;
-            if (previousPlayerIndex < 0) {
-                previousPlayerIndex = gameState.getPlayOrder().size() - 1;
-            }
-            UUID previousPlayerId = gameState.getPlayOrder().get(previousPlayerIndex);
-            List<Integer> previousPlayerThrows = currentmatch.getPlayerThrows().get(previousPlayerId);
-
-            if (!previousPlayerThrows.isEmpty()) {
-                int lastThrow = previousPlayerThrows.remove(previousPlayerThrows.size() - 1);
-
-                gameState.setCurrentplayerIndex(previousPlayerIndex);
-                gameState.setCurrentplayerId(previousPlayerId);
-
-                gameState.setThrowsleft(1);
-
-                if (currentmatch.getMode().getType() == MatchModeType.MODE_501) {
-                    if (currentmatch.isTeamMode()) {
-                        int previousPlayerScore = currentmatch.getScore(previousPlayerId);
-                        currentmatch.setScore(previousPlayerId, previousPlayerScore + lastThrow);
-                    } else {
-                        int previousPlayerScore = currentmatch.getScores().get(previousPlayerId);
-                        currentmatch.getScores().put(previousPlayerId, previousPlayerScore + lastThrow);
-                    }
-                }
-            }
-        } else {
-            int lastThrow = playerThrows.remove(playerThrows.size() - 1);
-            gameState.setThrowsleft(gameState.getThrowsleft() + 1);
-
-            if (currentmatch.getMode().getType() == MatchModeType.MODE_501) {
-                if (currentmatch.isTeamMode()) {
-                    int currentScore = currentmatch.getScore(playerId);
-                    currentmatch.setScore(playerId, currentScore + lastThrow);
-                } else {
-                    int currentScore = currentmatch.getScores().get(playerId);
-                    currentmatch.getScores().put(playerId, currentScore + lastThrow);
-                }
-            }
-        }
-
-        gameState.setLastreset(true);
+        return false;
     }
 
 
 
 
     public Massages messagethrows(UUID playerId, ThrowResult throwResult) {
-        Match currentmatch = getMatch();
-        GameState gameState = currentmatch.getGameState();
-
-        if (currentmatch == null) {
-            return new Massages("Fehler", "Kein Spiel gestartet");
-        }
-        int currentscore = currentmatch.getScores().get(playerId);
-        int newscore = currentscore - throwResult.getScore();
-
-        if (newscore < 0) {
-            return new Massages("Ungültiger Wurf", "Überworfen");
-        }
-
-
-        if (firstThrow(playerId)) {
-            switch (currentmatch.getMode().getStartMode()) {
-                case DOUBLE_IN:
-                    if (!throwResult.isDouble()) {
-                        return new Massages("Ungültiger Wurf", "Du musst mit Double oder Bull's Eye beginnen");
-                    }
-                    break;
-                case MASTER_IN:
-                    if (!throwResult.isTriple() && !throwResult.isDouble()) {
-                        return new Massages("Ungültiger Wurf", "Du musst mit Triple, Double oder Bull's Eye beginnen");
-                    }
-                    break;
-            }
-        }
-        if (newscore == 0) {
-            switch (currentmatch.getMode().getEndMode()) {
-                case DOUBLE_OUT:
-                    if (!throwResult.isDouble()) {
-                        return new Massages("Ungültiger Wurf", "Du musst mit Double oder Bull's Eye enden");
-                    }
-                    break;
-                case MASTER_OUT:
-                    if (!throwResult.isTriple() && !throwResult.isDouble()) {
-                        return new Massages("Ungültiger Wurf", "Du musst mit Triple, Double oder Bull's Eye enden");
-                    }
-                    break;
-            }
-        }
-        if((currentmatch.getMode().getEndMode() == EndMode.MASTER_OUT || currentmatch.getMode().getEndMode() == EndMode.DOUBLE_OUT) && newscore == 1){
-            return new Massages("Ungültiger Wurf", "1 Punkt in Double/Triple out Modus nicht erlaubt");
-        }
-        if(throwResult.getScore() == 25){
-            if((currentmatch.getMode().getEndMode() == EndMode.MASTER_OUT || currentmatch.getMode().getEndMode() == EndMode.DOUBLE_OUT) && newscore == 1){
-                 return new Massages("Ungültiger Wurf", "1 Punkt in Double/Triple out Modus nicht erlaubt");
-            }
-        }
-        if(throwResult.getScore() == 50){
-            if((currentmatch.getMode().getEndMode() == EndMode.MASTER_OUT || currentmatch.getMode().getEndMode() == EndMode.DOUBLE_OUT) && newscore == 1)
-            {
-                return new Massages("Ungültiger Wurf", "1 Punkt in Double/Triple out Modus nicht erlaubt");
-            }
-        }
-        return new Massages("OK", "Wurf erfolgreich", true);
+        if (match == null) return new Massages("Fehler", "Kein Spiel gestartet");
+        return getStrategy().validateThrow(match, playerId, throwResult);
     }
 
 }
