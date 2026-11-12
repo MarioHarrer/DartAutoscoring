@@ -384,22 +384,24 @@ document.getElementById('startCameraButton').addEventListener('click', function(
             if (!response.ok) {
                 throw new Error('Netzwerkantwort war nicht ok');
             }
-            /*Swal.fire({
-                title: 'Erfolg!',
-                text: 'Kameras wurden erfolgreich gestartet',
+            Swal.fire({
+                title: 'Kameras gestartet!',
+                text: 'Das Python-Skript wurde erfolgreich geweckt. Bitte kalibriere nun die Kameras in Python.',
                 icon: 'success',
-                confirmButtonText: 'OK'
+                toast: true,
+                position: 'top-end',
+                timer: 4000,
+                showConfirmButton: false
             });
         })
         .catch(error => {
             Swal.fire({
                 title: 'Fehler!',
-                text: 'Fehler beim Starten der Kameras: ' + error.message,
+                text: 'Fehler beim Starten der Kameras. Läuft das Python-Skript im Hintergrund?',
                 icon: 'error',
                 confirmButtonText: 'OK'
             });
-        });*/
-        })
+        });
 });
 
 

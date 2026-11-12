@@ -247,89 +247,83 @@ public class Match {
     //Absoluter path:
 
 
-    public void startKameraTest() {
-    try {
-        // Absoluter Pfad
-        String scriptPath = "C:\\Users\\harrerm\\IdeaProjects\\DartAutoscoring\\camera\\kamera_test.py";
-
-        File scriptFile = new File(scriptPath);
-        if (!scriptFile.exists()) {
-            System.err.println("Python-Skript nicht gefunden: " + scriptPath);
-            return;
-        }
-
-        System.out.println("Versuche Python-Skript zu starten von: " + scriptPath);
-
-
-        try {
-            ProcessBuilder processBuilder = new ProcessBuilder(
-                    "python", "-m", "pip", "install", "requests"
-            );
-            processBuilder.redirectErrorStream(true);
-            Process process = processBuilder.start();
-
-            // Ausgabe lesen
-            BufferedReader reader = new BufferedReader(
-                    new InputStreamReader(process.getInputStream())
-            );
-            String line;
-            while ((line = reader.readLine()) != null) {
-                System.out.println(line);
-            }
-
-            int exitCode = process.waitFor();
-            System.out.println("Prozess beendet mit Code: " + exitCode);
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
-
-
-
-
-        ProcessBuilder processBuilder = new ProcessBuilder("python", scriptPath);
-        // Arbeitsverzeichnis setzen
-        processBuilder.directory(new File("C:\\Users\\harrerm\\IdeaProjects\\DartAutoscoring\\camera"));
-        processBuilder.redirectErrorStream(true);
-
-        System.out.println("Starte Python-Skript...");
-        Process process = processBuilder.start();
-
-        // Separate Threads für Ein- und Ausgabe
-        Thread outputThread = new Thread(() -> {
-            try (BufferedReader reader = new BufferedReader(
-                    new InputStreamReader(process.getInputStream(), StandardCharsets.UTF_8))) {
-                String line;
-                while ((line = reader.readLine()) != null) {
-                    System.out.println("Python-Ausgabe: " + line);
-                }
-            } catch (IOException e) {
-                e.printStackTrace();
-            }
-        });
-        outputThread.start();
-
-        try (BufferedWriter writer = new BufferedWriter(
-                new OutputStreamWriter(process.getOutputStream()))) {
-            writer.write("start");
-            writer.newLine();
-            writer.flush();
-        }
-
-        int exitCode = process.waitFor();
-        System.out.println("Python-Skript beendet mit Code: " + exitCode);
-        if (exitCode != 0) {
-            System.err.println("Python-Skript wurde mit Fehlercode beendet: " + exitCode);
-        }
-
-    } catch (IOException | InterruptedException e) {
-        System.err.println("Fehler beim Ausführen des Python-Skripts: " + e.getMessage());
-        e.printStackTrace();
-    }
+//    public void startKameraTest() {
+//    try {
+//        // Absoluter Pfad
+//        String scriptPath = "C:\\Users\\Mario\\OneDrive - HTL Saalfelden\\Schule\\DartAutoscoring\\DartAutoscoring\\camera\\kamera_test.py";
+//
+//        File scriptFile = new File(scriptPath);
+//        if (!scriptFile.exists()) {
+//            System.err.println("Python-Skript nicht gefunden: " + scriptPath);
+//            return;
+//        }
+//
+//        System.out.println("Versuche Python-Skript zu starten von: " + scriptPath);
+//
+//
+//        try {
+//            ProcessBuilder processBuilder = new ProcessBuilder(
+//                    "python", "-m", "pip", "install", "requests"
+//            );
+//            processBuilder.redirectErrorStream(true);
+//            Process process = processBuilder.start();
+//
+//            // Ausgabe lesen
+//            BufferedReader reader = new BufferedReader(
+//                    new InputStreamReader(process.getInputStream())
+//            );
+//            String line;
+//            while ((line = reader.readLine()) != null) {
+//                System.out.println(line);
+//            }
+//
+//            int exitCode = process.waitFor();
+//            System.out.println("Prozess beendet mit Code: " + exitCode);
+//        } catch (Exception e) {
+//            e.printStackTrace();
+//        }
+//
+//
+//
+//
+//        ProcessBuilder processBuilder = new ProcessBuilder("python", scriptPath);
+//        // Arbeitsverzeichnis setzen
+//        processBuilder.directory(new File("C:\\Users\\Mario\\OneDrive - HTL Saalfelden\\Schule\\DartAutoscoring\\DartAutoscoring\\camera"));
+//        processBuilder.redirectErrorStream(true);
+//
+//        System.out.println("Starte Python-Skript...");
+//        Process process = processBuilder.start();
+//
+//        // Separate Threads für Ein- und Ausgabe
+//        Thread outputThread = new Thread(() -> {
+//            try (BufferedReader reader = new BufferedReader(
+//                    new InputStreamReader(process.getInputStream(), StandardCharsets.UTF_8))) {
+//                String line;
+//                while ((line = reader.readLine()) != null) {
+//                    System.out.println("Python-Ausgabe: " + line);
+//                }
+//            } catch (IOException e) {
+//                e.printStackTrace();
+//            }
+//        });
+//        outputThread.start();
+//
+//        try (BufferedWriter writer = new BufferedWriter(
+//                new OutputStreamWriter(process.getOutputStream()))) {
+//            writer.write("start");
+//            writer.newLine();
+//            writer.flush();
+//        }
+//
+//        int exitCode = process.waitFor();
+//        System.out.println("Python-Skript beendet mit Code: " + exitCode);
+//        if (exitCode != 0) {
+//            System.err.println("Python-Skript wurde mit Fehlercode beendet: " + exitCode);
+//        }
+//
+//    } catch (IOException | InterruptedException e) {
+//        System.err.println("Fehler beim Ausführen des Python-Skripts: " + e.getMessage());
+//        e.printStackTrace();
+//    }
 }
 
-
-
-
-
-
-}

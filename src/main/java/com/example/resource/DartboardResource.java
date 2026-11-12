@@ -1,6 +1,7 @@
 package com.example.resource;
 
 import com.example.model.*;
+import com.example.service.CameraControlService;
 import com.example.service.DartService;
 import io.quarkus.qute.Template;
 import io.quarkus.qute.TemplateInstance;
@@ -22,6 +23,9 @@ public class DartboardResource {
 
     @Inject
     DartService dartService;
+
+    @Inject
+    CameraControlService cameraControlService;
 
 
     @GET
@@ -151,8 +155,7 @@ public class DartboardResource {
     @POST
     @Path("/startCamera")
     public Response startCamera() {
-        Match currentMatch = dartService.getMatch();
-        currentMatch.startKameraTest();
+        cameraControlService.startPythonCameras();
         return Response.ok().build();
     }
 

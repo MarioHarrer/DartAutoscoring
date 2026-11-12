@@ -2,14 +2,17 @@ import cv2
 import numpy as np
 import os
 import torch
+import requests
+import threading
+from flask import Flask, jsonify
 from sam2.build_sam import build_sam2
 from sam2.sam2_image_predictor import SAM2ImagePredictor
 
 # ------ 1. KONFIGURATION ------
-#Homographie
+# Homographie
 SIZE = 800  # Größe der entzerrten Dartscheibe
-CENTER = (400, 400) #Mittelpunkt
-CAM_IDS = [0, 1, 2]  #Die 3 Kameras
+CENTER = (400, 400)  # Mittelpunkt
+CAM_IDS = [0, 1, 2]  # Die 3 Kameras
 
 # --SAM 2 Pfade--
 # os sodass es betriebsunabhängig ist ich damit kommunizieren kann
@@ -20,17 +23,17 @@ CAM_IDS = [0, 1, 2]  #Die 3 Kameras
 # Nach der Zeile: "C:\Users\Mario\OneDrive - HTL Saalfelden\Schule\DartAu...\camera"
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 
-#Diese Zeile fügt deinen ermittelten Hauptordner, den Unterordner sam_checkpoints und den Dateinamen sam2.1_hiera_large.pt automatisch zu einem vollständigen Dateipfad zusammen
-#damit das Programm exakt weiß, wo es die KI-Datei auf deiner Festplatte findet.
-#"C:\Users\Mario\OneDrive - HTL Saalfelden\Schule\DartAu...\camera\sam_checkpoints\sam2.1_hiera_large.pt"
+# Diese Zeile fügt deinen ermittelten Hauptordner, den Unterordner sam_checkpoints und den Dateinamen sam2.1_hiera_large.pt automatisch zu einem vollständigen Dateipfad zusammen
+# damit das Programm exakt weiß, wo es die KI-Datei auf deiner Festplatte findet.
+# "C:\Users\Mario\OneDrive - HTL Saalfelden\Schule\DartAu...\camera\sam_checkpoints\sam2.1_hiera_large.pt"
 CHECKPOINT = os.path.join(BASE_DIR, "sam_checkpoints", "sam2.1_hiera_large.pt")
 
-#Das hier ist die config datei sodass es ein bauplan gibt um das model zu laden
-#wird später genutzt welche modelgrße später geladen werden soll
-#Large datei damit wir gut die pfeilspitzen erkenn können.
-#config datein ist in der datei die heruntergeladen wurde
+# Das hier ist die config datei sodass es ein bauplan gibt um das model zu laden
+# wird später genutzt welche modelgrße später geladen werden soll
+# Large datei damit wir gut die pfeilspitzen erkenn können.
+# config datein ist in der datei die heruntergeladen wurde
 MODEL_CFG = "configs/sam2.1/sam2.1_hiera_l.yaml"
-#durch den 3 zeilen habe ich den pfad sodass ich dann später das sam2 Model laden kann
+# durch den 3 zeilen habe ich den pfad sodass ich dann später das sam2 Model laden kann
 
 # Ziel-Koordinaten für die Homographie (Double-Ring)
 # ZIEL-SCHABLONE FÜR DIE ENTZERRUNG:
@@ -48,14 +51,61 @@ DST_PTS = np.array([
 # Wird genutzt, um die berechnung des Pfeils in Punkte umzuwandeln.
 SEGMENTS = [20, 1, 18, 4, 13, 6, 10, 15, 2, 17, 3, 19, 7, 16, 8, 11, 14, 9, 12, 5]
 
-#Leere Liste für meine 4 Mausklicks zum zuordnen
+# Leere Liste für meine 4 Mausklicks zum zuordnen
 pts_tmp = []
+
+# --- NEU: FLASK WEBSERVER & STATE FÜR BACKEND-KOMMUNIKATION ---
+app = Flask(__name__)
+system_active = False  # Steuert den Ruhezustand der Kameras
+
+
+@app.route('/api/camera/start', methods=['POST'])
+def start_cameras():
+    global system_active
+    system_active = True
+    print("\n🟢 START-BEFEHL EMPFANGEN: Kameras werden initialisiert.")
+    return jsonify({"status": "Kameras werden gestartet"})
+
+
+@app.route('/api/camera/stop', methods=['POST'])
+def stop_cameras():
+    global system_active
+    system_active = False
+    print("\n🔴 STOP-BEFEHL EMPFANGEN: Kameras gehen in den Ruhezustand.")
+    return jsonify({"status": "Kameras werden gestoppt"})
+
+
+def start_flask_server():
+    import logging
+    log = logging.getLogger('werkzeug')
+    log.setLevel(logging.ERROR)  # Verhindert Spam in der Konsole
+    app.run(port=5000, debug=False, use_reloader=False)
+
+
+def send_score_to_backend(base_score, is_double, is_triple):
+    """ Sendet den Wurf asynchron per HTTP POST an das Quarkus-Backend """
+    url = "http://localhost:8080/api/dart/score"
+    payload = {
+        "score": base_score,
+        "isDouble": is_double,
+        "isTriple": is_triple
+    }
+
+    def post_request():
+        try:
+            response = requests.post(url, json=payload, timeout=2)
+            print(f"🌐 Score an Backend gesendet! Status: {response.status_code}")
+        except requests.exceptions.RequestException as e:
+            print(f"⚠️ Verbindung zum Backend fehlgeschlagen: {e}")
+
+    threading.Thread(target=post_request).start()
+
 
 # ---------------- 2. KI MODELL LADEN ----------------
 print("Lade SAM 2 Modell...")
-#Schaut ob eine Grafikkarte cuba verfügbar is ansonsten wird gpu Prozessor verwendet
+# Schaut ob eine Grafikkarte cuba verfügbar is ansonsten wird gpu Prozessor verwendet
 device = "cuda" if torch.cuda.is_available() else "cpu"
-#Das Ki modell wird in die Hardware auf cuda oder gpu geladen
+# Das Ki modell wird in die Hardware auf cuda oder gpu geladen
 sam2_model = build_sam2(MODEL_CFG, CHECKPOINT, device=device)
 # Verpackt das nackte KI-Modell in ein Werkzeug (Predictor).
 # Er übersetzt unsere Kamerabilder für die KI, speichert Berechnungen
@@ -65,23 +115,26 @@ print(f"SAM 2 geladen auf {device.upper()}")
 
 
 # ---------------- 3. MATHEMATIK & GEOMETRIE ----------------
-def get_score(x, y):                #Pixel Koordinaten
-    dx = x - CENTER[0]              #Berechnet die Distanz auf der X-Achse: Wie viele Pixel liegt der Treffer links oder rechts vom absoluten Zentrum
-    dy = y - CENTER[1]              #Berechnet die Distanz auf der Y-Achse: Wie viele Pixel liegt der Treffer über oder unter dem Zentrum
-    r = np.sqrt(dx ** 2 + dy ** 2)  #Das ist der klassische Satz des Pythagoras. Es berechnet die direkte Luftlinie in Pixeln vom Bullseye bis zum Dartpfeil.
+def get_score(x, y):  # Pixel Koordinaten
+    dx = x - CENTER[
+        0]  # Berechnet die Distanz auf der X-Achse: Wie viele Pixel liegt der Treffer links oder rechts vom absoluten Zentrum
+    dy = y - CENTER[
+        1]  # Berechnet die Distanz auf der Y-Achse: Wie viele Pixel liegt der Treffer über oder unter dem Zentrum
+    r = np.sqrt(
+        dx ** 2 + dy ** 2)  # Das ist der klassische Satz des Pythagoras. Es berechnet die direkte Luftlinie in Pixeln vom Bullseye bis zum Dartpfeil.
 
-    R_BULL, R_SINGLE_BULL = 14, 35  #Das innere, rote Bullseye ist 14 Pixel groß. Das äußere, grüne Single Bull geht bis 35 Pixel.
+    R_BULL, R_SINGLE_BULL = 14, 35  # Das innere, rote Bullseye ist 14 Pixel groß. Das äußere, grüne Single Bull geht bis 35 Pixel.
     R_TRIPLE_START, R_TRIPLE_END = 195, 220
     R_DOUBLE_START, R_DOUBLE_END = 315, 360
 
-    #bis hier auf der homographie
+    # bis hier auf der homographie
 
     if r <= R_BULL:
-        return "BULLSEYE", 50, 50
+        return "BULLSEYE", 50, 50, 50, True, False
     elif r <= R_SINGLE_BULL:
-        return "SINGLE BULL", 25, 25
+        return "SINGLE BULL", 25, 25, 25, False, False
     elif r > R_DOUBLE_END:
-        return "AUSSERHALB", 0, 0
+        return "AUSSERHALB", 0, 0, 0, False, False
 
     #
     # Beispiel-Ablauf für einen Treffer auf der Double 20 (X=400, Y=80):
@@ -117,23 +170,23 @@ def get_score(x, y):                #Pixel Koordinaten
     # - Pfeil B (in der  5 bei -10°): -10° + 9 = -1° -> -1° % 360 = 359° -> 359 // 18 = Index 19 (5 Punkte -> KORREKT!)
     adjusted_angle = (angle + 90 + 9) % 360
 
-    if adjusted_angle < 0: adjusted_angle += 360                #falls neigativer winkel entsteht
+    if adjusted_angle < 0: adjusted_angle += 360  # falls neigativer winkel entsteht
 
-    #Hier werden von den 360 Grad jewils die ganzen Punkte den Grad zugeordnet (Index) jedes Feld hat 18 Grad
-    #es wird die gradzahl dividiert durch 18, sodass wir die index stelle haben und dannach
-    #wird mit dem max kontrolliert, sodass der index nicht unter 0 fällt
-    #und bei min das der inex nicht über 19 geht
+    # Hier werden von den 360 Grad jewils die ganzen Punkte den Grad zugeordnet (Index) jedes Feld hat 18 Grad
+    # es wird die gradzahl dividiert durch 18, sodass wir die index stelle haben und dannach
+    # wird mit dem max kontrolliert, sodass der index nicht unter 0 fällt
+    # und bei min das der inex nicht über 19 geht
     segment_index = min(max(0, int(adjusted_angle // 18)), 19)
-    #hier übergebe ich meiner Liste den Index und hole mir die echte Punktezahl
+    # hier übergebe ich meiner Liste den Index und hole mir die echte Punktezahl
     base_points = SEGMENTS[segment_index]
 
+    # NEU: Zusätzliche Rückgabewerte (backend_score, isDouble, isTriple) für das Java-Backend angefügt
     if R_TRIPLE_START <= r <= R_TRIPLE_END:
-        return f"TRIPLE {base_points}", 3, base_points * 3
+        return f"TRIPLE {base_points}", 3, base_points * 3, base_points, False, True
     elif R_DOUBLE_START <= r <= R_DOUBLE_END:
-        return f"DOUBLE {base_points}", 2, base_points * 2
+        return f"DOUBLE {base_points}", 2, base_points * 2, base_points, True, False
     else:
-        return f"SINGLE {base_points}", 1, base_points
-
+        return f"SINGLE {base_points}", 1, base_points, base_points, False, False
 
 
 # PROJEKTION / ENTZEHRUNG:
@@ -150,7 +203,7 @@ def transform_point(pt, H):
     p = np.array([pt[0], pt[1], 1.0])
     p_trans = H.dot(p)
     if p_trans[2] == 0: return (0, 0)
-    #ERGÄNZUNG: Perspektiven-Division (Re-Normalisierung).
+    # ERGÄNZUNG: Perspektiven-Division (Re-Normalisierung).
     # Teilt X und Y durch die homogene Skalierung Z (p_trans[2]),
     # um wieder echte 2D-Pixelkoordinaten zu erhalten.
     return (int(p_trans[0] / p_trans[2]), int(p_trans[1] / p_trans[2]))
@@ -171,13 +224,15 @@ def transform_point(pt, H):
 # 2. Kombiniert alle Kamerasignale zu einer einzigen, präzisen Pfeilspitzen-Koordinate.
 
 # Beispiel mit 2 Linien: (0,50)->(100,50) und (50,0)->(50,100) -> Schnittpunkt: (50, 50)
-def get_intersection(lines):                    # es wird für ein Schnittpunkt immer midenstens zwei linien benötigt. lines sind die Linien(Achsen) der Kameras
-    if len(lines) < 2: return None              # len steht für length
+def get_intersection(
+        lines):  # es wird für ein Schnittpunkt immer midenstens zwei linien benötigt. lines sind die Linien(Achsen) der Kameras
+    if len(lines) < 2: return None  # len steht für length
     A, b = [], []
-    #wir gehen hier alle linien durch und jede linie hat einen sart und enpunkt und dazu holen wir uns jeweils den x und y wert zum rechnen
+    # wir gehen hier alle linien durch und jede linie hat einen sart und enpunkt und dazu holen wir uns jeweils den x und y wert zum rechnen
     for p1, p2 in lines:
         x1, y1 = p1
         x2, y2 = p2
+        # da es mit der normalen linien formel ein problem gibt also y = k * x + d (durch die homographie
         # Linien-Gleichung: Ax + By = C
         A_coef = y2 - y1
         B_coef = x1 - x2
@@ -271,7 +326,8 @@ def process_camera_dart(img_ref, img_new, H, predictor, cid=0):
             best_val, best_idx = val, i
 
     if best_idx == -1:
-        cv2.putText(debug_img, f"Kam {cid}: SAM2 Maske ungueltig", (10, 30), cv2.FONT_HERSHEY_SIMPLEX, 0.7, (0, 0, 255), 2)
+        cv2.putText(debug_img, f"Kam {cid}: SAM2 Maske ungueltig", (10, 30), cv2.FONT_HERSHEY_SIMPLEX, 0.7, (0, 0, 255),
+                    2)
         return None, debug_img
 
     mask = masks[best_idx].astype(bool)
@@ -372,35 +428,21 @@ def calibrate_camera(cap, cam_id):
 
 
 # ---------------- 6. MAIN LOOP ----------------
-# ---------------- 6. MAIN LOOP ----------------
 def main():
-    caps = [(cid, cv2.VideoCapture(cid)) for cid in CAM_IDS if cv2.VideoCapture(cid).isOpened()]
-    if not caps:
-        print("Keine Kameras gefunden!")
-        return
+    global system_active
 
-    matrices = {}
-    for cid, cap in caps:
-        H = calibrate_camera(cap, cid)
-        if H is not None: matrices[cid] = H
-
-    print("\n=== SYSTEM BEREIT ===")
-    print("'b' druecken = Leeres Board speichern (Background)")
-    print("'t' druecken = Auswertung starten (Throw) nach einem Wurf")
-    print("Klicke auf Linie = Kamera an/ausschalten")
-    print("'1', '2', '3' = Kamera 0, 1, 2 als Notfall-Schalter an/ausschalten")
-    print("'q' druecken = Beenden")
+    # 1. Starte den Flask-Server im Hintergrund
+    threading.Thread(target=start_flask_server, daemon=True).start()
+    print("=========================================")
+    print("PYTHON BEREIT. Warte auf Start-Signal aus dem Browser...")
+    print("Port 5000 ist offen.")
+    print("=========================================")
 
     # Zustand für interaktives UI
     app_state = {
         'lines_data': [],  # Speichert [{cid, p1, p2, active, color}, ...]
         'board_img': np.zeros((SIZE, SIZE, 3), dtype=np.uint8)
     }
-
-    cv2.namedWindow("Live View")
-    cv2.namedWindow("Result (Top Down)")
-    cv2.namedWindow("SAM2 Segmentierung Debug")
-    cv2.namedWindow("Homografie Entzerrung")  # NEU: Fenster für die entzerrten Kamerabilder
 
     # Interaktives Update-UI
     def update_result_board():
@@ -421,8 +463,13 @@ def main():
         if len(active_lines) >= 2:
             intersection = get_intersection(active_lines)
             if intersection:
-                label, mult, total = get_score(intersection[0], intersection[1])
+                # Entpackt alle Variablen (inklusive der 3 neuen fürs Java Backend)
+                label, mult, total, backend_score, is_dbl, is_tpl = get_score(intersection[0], intersection[1])
                 print(f"🎯 NEUER SCORE BERECHNET: {label} | Punkte: {total}")
+
+                # --- WURF AN JAVA BACKEND SENDEN ---
+                send_score_to_backend(backend_score, is_dbl, is_tpl)
+
                 cv2.circle(board, intersection, 6, (0, 255, 255), -1)
                 cv2.putText(board, f"{label} ({total})", (intersection[0] + 15, intersection[1]),
                             cv2.FONT_HERSHEY_SIMPLEX, 0.8, (255, 255, 255), 2)
@@ -444,99 +491,136 @@ def main():
                     update_result_board()
                     break
 
-    cv2.setMouseCallback("Result (Top Down)", on_mouse_click_result)
-
-    backgrounds = {}
-    base_colors = [(255, 0, 0), (0, 255, 0), (255, 255, 0)]
-
-    update_result_board()
-
+    # --- DIE GROSSE ENDLOSSCHLEIFE ---
     while True:
-        frames = {}
-        display_frames = []
-        warped_frames = []  # NEU: Liste für entzerrte Kamerabilder
+        # Im Ruhezustand (Kameras aus) wartet Python hier ressourcenschonend
+        if not system_active:
+            cv2.waitKey(200)
+            continue
 
+        print("\n=== SYSTEM WIRD GESTARTET ===")
+        caps = []
+        for cid in CAM_IDS:
+            cap = cv2.VideoCapture(cid)
+            if cap.isOpened():
+                caps.append((cid, cap))
+            else:
+                print(f"Warnung: Kamera {cid} konnte nicht geöffnet werden.")
+                cap.release()
+
+        if not caps:
+            print("Keine Kameras gefunden! Gehe zurück in Ruhezustand.")
+            system_active = False
+            continue
+
+        matrices = {}
         for cid, cap in caps:
-            ret, frame = cap.read()
-            if ret:
-                frames[cid] = frame
-                display_frames.append(cv2.resize(frame, (400, 300)))
+            H = calibrate_camera(cap, cid)
+            if H is not None: matrices[cid] = H
 
-                # NEU: Falls die Kamera kalibriert ist, erstelle die entzerrte Draufsicht
-                if cid in matrices:
-                    warped = cv2.warpPerspective(frame, matrices[cid], (SIZE, SIZE))
-                    # Beschriftung hinzufügen
-                    cv2.putText(warped, f"Kam {cid} Homografie", (20, 40),
-                                cv2.FONT_HERSHEY_SIMPLEX, 0.8, (0, 255, 0), 2)
-                    warped_frames.append(cv2.resize(warped, (400, 400)))
+        print("\n=== SYSTEM BEREIT ===")
+        print("'b' druecken = Leeres Board speichern (Background)")
+        print("'t' druecken = Auswertung starten (Throw) nach einem Wurf")
+        print("Klicke auf Linie = Kamera an/ausschalten")
+        print("'1', '2', '3' = Kamera 0, 1, 2 als Notfall-Schalter an/ausschalten")
+        print("'q' druecken = Beenden und in Ruhezustand wechseln")
 
-        if display_frames:
-            cv2.imshow("Live View", np.hstack(display_frames))
-            cv2.imshow("Result (Top Down)", app_state['board_img'])
+        cv2.namedWindow("Live View")
+        cv2.namedWindow("Result (Top Down)")
+        cv2.namedWindow("SAM2 Segmentierung Debug")
+        cv2.namedWindow("Homografie Entzerrung")
+        cv2.setMouseCallback("Result (Top Down)", on_mouse_click_result)
 
-        # NEU: Zeige alle entzerrten Kamera-Draufsichten nebeneinander an
-        if warped_frames:
-            cv2.imshow("Homografie Entzerrung", np.hstack(warped_frames))
+        backgrounds = {}
+        base_colors = [(255, 0, 0), (0, 255, 0), (255, 255, 0)]
+        update_result_board()
 
-        key = cv2.waitKey(1) & 0xFF
+        # Aktive Kamera-Schleife, läuft solange system_active = True ist
+        while system_active:
+            frames = {}
+            display_frames = []
+            warped_frames = []
 
-        if key == ord('q'):
-            break
+            for cid, cap in caps:
+                ret, frame = cap.read()
+                if ret:
+                    frames[cid] = frame
+                    display_frames.append(cv2.resize(frame, (400, 300)))
 
-        elif key == ord('b'):
-            backgrounds = frames.copy()
-            print("Backgrounds gespeichert! Bereit fuer Wuerfe.")
+                    if cid in matrices:
+                        warped = cv2.warpPerspective(frame, matrices[cid], (SIZE, SIZE))
+                        cv2.putText(warped, f"Kam {cid} Homografie", (20, 40),
+                                    cv2.FONT_HERSHEY_SIMPLEX, 0.8, (0, 255, 0), 2)
+                        warped_frames.append(cv2.resize(warped, (400, 400)))
 
-        elif key == ord('t'):
-            if not backgrounds:
-                print("FEHLER: Zuerst mit 'b' ein leeres Board speichern!")
-                continue
+            if display_frames:
+                cv2.imshow("Live View", np.hstack(display_frames))
+                cv2.imshow("Result (Top Down)", app_state['board_img'])
 
-            print("\nAnalysiere Wurf...")
-            app_state['lines_data'] = []
-            debug_frames = []
-            c_idx = 0
+            if warped_frames:
+                cv2.imshow("Homografie Entzerrung", np.hstack(warped_frames))
 
-            for cid in frames:
-                if cid in matrices and cid in backgrounds:
-                    line_pts, debug_img = process_camera_dart(
-                        backgrounds[cid], frames[cid], matrices[cid], predictor, cid=cid
-                    )
-                    if line_pts:
-                        print(f"Kamera {cid}: Achse gefunden.")
-                        app_state['lines_data'].append({
-                            'cid': cid,
-                            'p1': line_pts[0],
-                            'p2': line_pts[1],
-                            'active': True,
-                            'color': base_colors[c_idx % len(base_colors)]
-                        })
-                    else:
-                        print(f"Kamera {cid}: Kein Pfeil erkannt.")
+            key = cv2.waitKey(1) & 0xFF
 
-                    debug_frames.append(cv2.resize(debug_img, (400, 300)))
+            if key == ord('q'):
+                system_active = False  # Bricht die innere Schleife ab und geht in den Ruhezustand
+                break
 
-                c_idx += 1
+            elif key == ord('b'):
+                backgrounds = frames.copy()
+                print("Backgrounds gespeichert! Bereit fuer Wuerfe.")
 
-            if debug_frames:
-                cv2.imshow("SAM2 Segmentierung Debug", np.hstack(debug_frames))
+            elif key == ord('t'):
+                if not backgrounds:
+                    print("FEHLER: Zuerst mit 'b' ein leeres Board speichern!")
+                    continue
 
-            update_result_board()
+                print("\nAnalysiere Wurf...")
+                app_state['lines_data'] = []
+                debug_frames = []
+                c_idx = 0
 
-        elif key in [ord('1'), ord('2'), ord('3')]:
-            cam_idx = key - ord('1')
-            if cam_idx < len(caps):
-                target_cid = caps[cam_idx][0]
-                for line in app_state['lines_data']:
-                    if line['cid'] == target_cid:
-                        line['active'] = not line['active']
-                        status = "DEAKTIVIERT" if not line['active'] else "AKTIVIERT"
-                        print(f"Kamera {target_cid} per Tastatur {status}")
-                        update_result_board()
-                        break
+                for cid in frames:
+                    if cid in matrices and cid in backgrounds:
+                        line_pts, debug_img = process_camera_dart(
+                            backgrounds[cid], frames[cid], matrices[cid], predictor, cid=cid
+                        )
+                        if line_pts:
+                            print(f"Kamera {cid}: Achse gefunden.")
+                            app_state['lines_data'].append({
+                                'cid': cid,
+                                'p1': line_pts[0],
+                                'p2': line_pts[1],
+                                'active': True,
+                                'color': base_colors[c_idx % len(base_colors)]
+                            })
+                        else:
+                            print(f"Kamera {cid}: Kein Pfeil erkannt.")
 
-    for _, cap in caps: cap.release()
-    cv2.destroyAllWindows()
+                        debug_frames.append(cv2.resize(debug_img, (400, 300)))
+                    c_idx += 1
+
+                if debug_frames:
+                    cv2.imshow("SAM2 Segmentierung Debug", np.hstack(debug_frames))
+
+                update_result_board()
+
+            elif key in [ord('1'), ord('2'), ord('3')]:
+                cam_idx = key - ord('1')
+                if cam_idx < len(caps):
+                    target_cid = caps[cam_idx][0]
+                    for line in app_state['lines_data']:
+                        if line['cid'] == target_cid:
+                            line['active'] = not line['active']
+                            status = "DEAKTIVIERT" if not line['active'] else "AKTIVIERT"
+                            print(f"Kamera {target_cid} per Tastatur {status}")
+                            update_result_board()
+                            break
+
+        # Cleanup Kameras (wird ausgeführt, wenn 'q' gedrückt oder das Stop-Signal empfangen wurde)
+        for _, cap in caps: cap.release()
+        cv2.destroyAllWindows()
+        print("\n=== Kameras gestoppt. Python wartet wieder auf Start-Signal ===")
 
 
 if __name__ == "__main__":
