@@ -1,3 +1,5 @@
+package com.example.websocket;
+
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.websocket.OnClose;
 import jakarta.websocket.OnError;

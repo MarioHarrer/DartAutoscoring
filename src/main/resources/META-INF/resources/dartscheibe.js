@@ -1,10 +1,8 @@
-
 const isGameOver = document.querySelector('.gewinner-Alert') !== null;
 
 const missButton = document.getElementById('missButton');
 const resetButton = document.getElementById('resetButton');
 const endMatchButton = document.querySelector('.end-match-button');
-
 
 const isNewLegStarted = document.querySelector('li.active').getAttribute('data-new-leg') === 'true';
 
@@ -13,14 +11,12 @@ if (isNewLegStarted) {
 }
 
 if (isGameOver) {
-
     missButton.disabled = true;
     resetButton.disabled = true;
 
     endMatchButton.style.backgroundColor = '#28a745';
     endMatchButton.style.transform = 'scale(1.05)';
 }
-
 
 const sectorAngles = Array.from({ length: 20 }, (_, i) => i * 18 - 9);
 const sectorNumbers = [20, 1, 18, 4, 13, 6, 10, 15, 2, 17, 3, 19, 7, 16, 8, 11, 14, 9, 12, 5];
@@ -63,6 +59,10 @@ function createRing(startR, endR, ringName) {
         path.setAttribute("data-score", ringName + "-" + sectorNumbers[i]);
 
         path.addEventListener("click", async () => {
+            // Manueller Klick -> Kameras im Python sperren
+            lockCameraButtons();
+            fetch('http://localhost:5000/api/action/clear_lines', { method: 'POST' }).catch(e => console.log(e));
+
             const raw = path.getAttribute("data-score");
             const [zone, num] = raw.split("-");
             const score = parseInt(num);
@@ -111,7 +111,7 @@ function createRing(startR, endR, ringName) {
             } catch (error) {
                 console.error("Validierungsfehler:", error);
             }
-        })
+        });
 
         svg.appendChild(path);
     }
@@ -132,7 +132,8 @@ bull1.setAttribute("fill", "green");
 bull1.setAttribute("data-score", "bull-25");
 
 bull1.addEventListener("click", async () => {
-
+    lockCameraButtons();
+    fetch('http://localhost:5000/api/action/clear_lines', { method: 'POST' }).catch(e => console.log(e));
 
     try{
         const validation = await validateThrow(25, false, false);
@@ -146,7 +147,7 @@ bull1.addEventListener("click", async () => {
                 position: 'top-end',
                 timer: 2000,
                 showConfirmButton: false
-            })
+            });
             sendThrow(0, false, false);
             return;
         }
@@ -163,7 +164,6 @@ bull1.addEventListener("click", async () => {
     }catch(error){
         console.error("Validierungsfehler:", error);
     }
-
 });
 svg.appendChild(bull1);
 
@@ -175,9 +175,8 @@ bull2.setAttribute("r", "10");
 bull2.setAttribute("fill", "red");
 bull2.setAttribute("data-score", "bull-50");
 bull2.addEventListener("click", async () => {
-
-    const currentScore = parseInt(document.querySelector('li.active').textContent.split('Punktestand: ')[1]);
-    const newScore = currentScore - 50;
+    lockCameraButtons();
+    fetch('http://localhost:5000/api/action/clear_lines', { method: 'POST' }).catch(e => console.log(e));
 
     try {
         const validation = await validateThrow(50, true, false);
@@ -212,9 +211,9 @@ bull2.addEventListener("click", async () => {
 svg.appendChild(bull2);
 
 //Zahlenbeschriftung
-const numberRadius = 205; // Konstanter Abstand vom Mittelpunkt
+const numberRadius = 205;
 for (let i = 0; i < 20; i++) {
-    const angle = sectorAngles[i] + 9; // Zentrum des Sektors
+    const angle = sectorAngles[i] + 9;
     const angleRad = (angle - 90) * Math.PI / 180.0;
     const x = numberRadius * Math.cos(angleRad);
     const y = numberRadius * Math.sin(angleRad);
@@ -222,15 +221,28 @@ for (let i = 0; i < 20; i++) {
     const label = document.createElementNS("http://www.w3.org/2000/svg", "text");
     label.setAttribute("x", x);
     label.setAttribute("y", y);
-    label.setAttribute("text-anchor", "middle"); // Zentrierte Ausrichtung
-    label.setAttribute("dominant-baseline", "middle"); // Vertikale Zentrierung
-    label.setAttribute("font-size", "16"); // Einheitliche Schriftgröße
-    label.setAttribute("font-family", "Arial"); // Einheitliche Schriftart
+    label.setAttribute("text-anchor", "middle");
+    label.setAttribute("dominant-baseline", "middle");
+    label.setAttribute("font-size", "16");
+    label.setAttribute("font-family", "Arial");
     label.textContent = sectorNumbers[i];
 
     svg.appendChild(label);
 }
 
+// Hilfsfunktion zum Sperren der Kamera-Buttons nach manuellem Klick
+function lockCameraButtons() {
+    for (let i = 0; i < 3; i++) {
+        let btn = document.getElementById('btn-cam-' + i);
+        if (btn) {
+            btn.disabled = true;
+            btn.classList.remove('btn-active');
+            btn.classList.add('btn-inactive');
+            btn.style.opacity = '0.5';
+            btn.style.cursor = 'not-allowed';
+        }
+    }
+}
 
 async function sendThrow(score, isDouble = false, isTriple = false) {
     try {
@@ -300,6 +312,9 @@ async function validateThrow(score, isDouble, isTriple) {
 }
 
 document.getElementById("missButton").addEventListener("click", async function() {
+    lockCameraButtons();
+    fetch('http://localhost:5000/api/action/clear_lines', { method: 'POST' }).catch(e => console.log(e));
+
     try {
         await sendThrow(0, false, false);
 
@@ -325,7 +340,11 @@ document.getElementById("missButton").addEventListener("click", async function()
         });
     }
 });
+
 document.getElementById("resetButton").addEventListener("click", async function() {
+    lockCameraButtons();
+    fetch('http://localhost:5000/api/action/clear_lines', { method: 'POST' }).catch(e => console.log(e));
+
     try {
         const baseUrl = window.location.origin.includes('localhost')
             ? 'http://localhost:8080'
@@ -338,7 +357,7 @@ document.getElementById("resetButton").addEventListener("click", async function(
             },
         });
 
-        if (response.status === 204) { // Wenn der Wurf bereits zurückgesetzt wurde
+        if (response.status === 204) {
             Swal.fire({
                 title: "Nicht möglich",
                 text: "Der letzte Wurf wurde bereits zurückgesetzt",
@@ -375,7 +394,6 @@ document.getElementById("resetButton").addEventListener("click", async function(
     }
 });
 
-
 document.getElementById('startCameraButton').addEventListener('click', function() {
     fetch('/dartboard/startCamera', {
         method: 'POST',
@@ -404,31 +422,42 @@ document.getElementById('startCameraButton').addEventListener('click', function(
         });
 });
 
-
 const socket = new WebSocket(`ws://${window.location.host}/websocket/dartboard`);
 
 socket.onmessage = function(event) {
     const data = JSON.parse(event.data);
 
     if (data.type === "throwRegistered") {
+        // Sobald Python einen Wurf erkennt, schalten wir die Buttons sofort klickbar frei!
+        for (let i = 0; i < 3; i++) {
+            let btn = document.getElementById('btn-cam-' + i);
+            if (btn) {
+                btn.disabled = false;
+                btn.classList.remove('btn-inactive');
+                btn.classList.add('btn-active');
+                btn.style.opacity = '1';
+                btn.style.cursor = 'pointer';
+            }
+        }
+
         if (data.showAlert) {
             Swal.fire({
                 title: data.alertTitle,
                 text: data.alertText,
                 icon: data.alertIcon,
-                confirmButtonText: 'OK'
+                toast: true,
+                position: 'top-end',
+                timer: 2000,
+                showConfirmButton: false
             }).then(() => {
                 window.location.reload();
             });
+
+            setTimeout(() => {
+                window.location.reload();
+            }, 2000);
+        } else {
+            window.location.reload();
         }
     }
 };
-
-
-
-
-
-
-
-
-

@@ -9,11 +9,10 @@ public class ThrowResult {
     private final boolean isDouble;
     private final boolean isTriple;
 
-
     public ThrowResult(int score, boolean isDouble, boolean isTriple) {
-
-        if(score == 50){
-            this.score = 50;
+        // Bullseye (50) und Single Bull (25) dürfen nicht multipliziert werden
+        if(score == 50 || score == 25){
+            this.score = score;
         }
         else{
             int finalScore = score;
@@ -27,5 +26,4 @@ public class ThrowResult {
         this.isDouble = isDouble;
         this.isTriple = isTriple;
     }
-
 }

@@ -4,7 +4,7 @@ import os
 import torch
 import requests
 import threading
-from flask import Flask, jsonify
+from flask import Flask, jsonify, Response, render_template
 from sam2.build_sam import build_sam2
 from sam2.sam2_image_predictor import SAM2ImagePredictor
 
@@ -58,6 +58,17 @@ pts_tmp = []
 app = Flask(__name__)
 system_active = False  # Steuert den Ruhezustand der Kameras
 
+# Speichert die jeweils aktuellsten Frames für das Web-Dashboard
+dashboard_frames = {
+    "live": None,
+    "result": None,
+    "debug": None,
+    "homography": None
+}
+
+# Globale Referenz für das Linien-State, damit das Web-Dashboard Kameras direkt per Klick umschalten kann
+global_app_state = {'lines_data': [], 'board_img': np.zeros((SIZE, SIZE, 3), dtype=np.uint8)}
+
 
 @app.route('/api/camera/start', methods=['POST'])
 def start_cameras():
@@ -75,6 +86,115 @@ def stop_cameras():
     return jsonify({"status": "Kameras werden gestoppt"})
 
 
+@app.route('/api/camera/toggle/<int:cid>', methods=['POST'])
+def toggle_camera_web(cid):
+    """ Ermöglicht das Umschalten einer Kamera direkt über das Web-Dashboard """
+    found = False
+    for line in global_app_state['lines_data']:
+        if line['cid'] == cid:
+            line['active'] = not line['active']
+            status = "DEAKTIVIERT" if not line['active'] else "AKTIVIERT"
+            print(f"Kamera {cid} per Web-Klick {status}")
+            found = True
+            break
+
+    update_result_board_global(is_correction=True)
+    return jsonify({"status": "success", "cid": cid, "found": found})
+
+
+trigger_background = False
+trigger_throw = False
+
+
+@app.route('/api/action/background')
+def web_background():
+    global trigger_background
+    trigger_background = True
+    return jsonify({"status": "Background angefordert"})
+
+
+@app.route('/api/action/throw')
+def web_throw():
+    global trigger_throw
+    trigger_throw = True
+    return jsonify({"status": "Wurfauswertung gestartet"})
+
+
+# NEU: Diese Route wird aufgerufen, wenn im Browser manuell korrigiert wird
+@app.route('/api/action/clear_lines', methods=['POST'])
+def clear_lines():
+    global_app_state['lines_data'] = []
+    update_result_board_global(is_correction=False)
+    print("🔒 Manueller Eingriff im Web: Kameras gesperrt bis zum nächsten Wurf.")
+    return jsonify({"status": "gesperrt"})
+
+
+def update_result_board_global(is_correction=False):
+    """ Zeichnet das Board global neu, wenn Kameras über das Web-Dashboard umgeschaltet werden """
+    board = np.zeros((SIZE, SIZE, 3), dtype=np.uint8)
+    cv2.circle(board, CENTER, 345, (50, 50, 50), -1)
+    cv2.circle(board, CENTER, 14, (0, 0, 255), -1)
+
+    active_lines = []
+    for line in global_app_state['lines_data']:
+        p1, p2 = line['p1'], line['p2']
+        if line['active']:
+            active_lines.append((p1, p2))
+            cv2.line(board, p1, p2, line['color'], 2)
+        else:
+            cv2.line(board, p1, p2, (80, 80, 80), 1)
+
+    if len(active_lines) >= 2:
+        intersection = get_intersection(active_lines)
+        if intersection:
+            label, mult, total, backend_score, is_dbl, is_tpl = get_score(intersection[0], intersection[1])
+            print(f"🎯 NEUER SCORE BERECHNET: {label} | Punkte: {total} | Korrektur: {is_correction}")
+
+            send_score_to_backend(backend_score, is_dbl, is_tpl, is_correction)
+
+            cv2.circle(board, intersection, 6, (0, 255, 255), -1)
+            cv2.putText(board, f"{label} ({total})", (intersection[0] + 15, intersection[1]),
+                        cv2.FONT_HERSHEY_SIMPLEX, 0.8, (255, 255, 255), 2)
+    else:
+        # Kein Print bei 0 Linien (um Spam zu vermeiden, wenn gesperrt ist)
+        if len(global_app_state['lines_data']) > 0:
+            print("INFO: Zu wenige Kameras aktiv (<2) um einen Schnittpunkt zu berechnen.")
+
+    global_app_state['board_img'] = board
+    dashboard_frames["result"] = board
+
+
+def generate_web_stream(frame_key):
+    while True:
+        frame = dashboard_frames.get(frame_key)
+        if frame is None:
+            # Sende ein schwarzes Platzhalter-Bild, falls noch kein Frame da ist
+            frame = np.zeros((300, 400, 3), dtype=np.uint8)
+
+        ret, buffer = cv2.imencode('.jpg', frame)
+        if not ret: continue
+
+        frame_bytes = buffer.tobytes()
+        yield (b'--frame\r\n'
+               b'Content-Type: image/jpeg\r\n\r\n' + frame_bytes + b'\r\n')
+
+
+@app.route('/stream/<frame_key>')
+def video_feed(frame_key):
+    return Response(generate_web_stream(frame_key), mimetype='multipart/x-mixed-replace; boundary=frame')
+
+
+@app.route('/')
+def index():
+    # NEU: Übergibt dem HTML, ob gerade ein Kamerawurf aktiv ist und welche Kamera an/aus ist
+    has_throw = len(global_app_state['lines_data']) > 0
+    cam_states = {}
+    for line in global_app_state['lines_data']:
+        cam_states[line['cid']] = line['active']
+
+    return render_template('index.html', has_throw=has_throw, cam_states=cam_states)
+
+
 def start_flask_server():
     import logging
     log = logging.getLogger('werkzeug')
@@ -82,13 +202,15 @@ def start_flask_server():
     app.run(port=5000, debug=False, use_reloader=False)
 
 
-def send_score_to_backend(base_score, is_double, is_triple):
+def send_score_to_backend(base_score, is_double, is_triple, is_correction=False):
     """ Sendet den Wurf asynchron per HTTP POST an das Quarkus-Backend """
     url = "http://localhost:8080/api/dart/score"
+
     payload = {
         "score": base_score,
         "isDouble": is_double,
-        "isTriple": is_triple
+        "isTriple": is_triple,
+        "isCorrection": is_correction
     }
 
     def post_request():
@@ -180,7 +302,6 @@ def get_score(x, y):  # Pixel Koordinaten
     # hier übergebe ich meiner Liste den Index und hole mir die echte Punktezahl
     base_points = SEGMENTS[segment_index]
 
-    # NEU: Zusätzliche Rückgabewerte (backend_score, isDouble, isTriple) für das Java-Backend angefügt
     if R_TRIPLE_START <= r <= R_TRIPLE_END:
         return f"TRIPLE {base_points}", 3, base_points * 3, base_points, False, True
     elif R_DOUBLE_START <= r <= R_DOUBLE_END:
@@ -429,7 +550,7 @@ def calibrate_camera(cap, cam_id):
 
 # ---------------- 6. MAIN LOOP ----------------
 def main():
-    global system_active
+    global system_active, trigger_background, trigger_throw
 
     # 1. Starte den Flask-Server im Hintergrund
     threading.Thread(target=start_flask_server, daemon=True).start()
@@ -437,59 +558,6 @@ def main():
     print("PYTHON BEREIT. Warte auf Start-Signal aus dem Browser...")
     print("Port 5000 ist offen.")
     print("=========================================")
-
-    # Zustand für interaktives UI
-    app_state = {
-        'lines_data': [],  # Speichert [{cid, p1, p2, active, color}, ...]
-        'board_img': np.zeros((SIZE, SIZE, 3), dtype=np.uint8)
-    }
-
-    # Interaktives Update-UI
-    def update_result_board():
-        """ Zeichnet das Board basierend auf aktiven Linien neu und berechnet den Score """
-        board = np.zeros((SIZE, SIZE, 3), dtype=np.uint8)
-        cv2.circle(board, CENTER, 345, (50, 50, 50), -1)
-        cv2.circle(board, CENTER, 14, (0, 0, 255), -1)
-
-        active_lines = []
-        for line in app_state['lines_data']:
-            p1, p2 = line['p1'], line['p2']
-            if line['active']:
-                active_lines.append((p1, p2))
-                cv2.line(board, p1, p2, line['color'], 2)
-            else:
-                cv2.line(board, p1, p2, (80, 80, 80), 1)
-
-        if len(active_lines) >= 2:
-            intersection = get_intersection(active_lines)
-            if intersection:
-                # Entpackt alle Variablen (inklusive der 3 neuen fürs Java Backend)
-                label, mult, total, backend_score, is_dbl, is_tpl = get_score(intersection[0], intersection[1])
-                print(f"🎯 NEUER SCORE BERECHNET: {label} | Punkte: {total}")
-
-                # --- WURF AN JAVA BACKEND SENDEN ---
-                send_score_to_backend(backend_score, is_dbl, is_tpl)
-
-                cv2.circle(board, intersection, 6, (0, 255, 255), -1)
-                cv2.putText(board, f"{label} ({total})", (intersection[0] + 15, intersection[1]),
-                            cv2.FONT_HERSHEY_SIMPLEX, 0.8, (255, 255, 255), 2)
-        else:
-            print("INFO: Zu wenige Kameras aktiv (<2) um einen Schnittpunkt zu berechnen.")
-
-        app_state['board_img'] = board
-        cv2.imshow("Result (Top Down)", app_state['board_img'])
-
-    # Maus-Klick Event Handler
-    def on_mouse_click_result(event, x, y, flags, param):
-        if event == cv2.EVENT_LBUTTONDOWN:
-            for line in app_state['lines_data']:
-                dist = point_line_distance(x, y, line['p1'][0], line['p1'][1], line['p2'][0], line['p2'][1])
-                if dist < 15:
-                    line['active'] = not line['active']
-                    status = "DEAKTIVIERT" if not line['active'] else "AKTIVIERT"
-                    print(f"Kamera {line['cid']} manuell {status} (Mausklick)")
-                    update_result_board()
-                    break
 
     # --- DIE GROSSE ENDLOSSCHLEIFE ---
     while True:
@@ -521,21 +589,19 @@ def main():
         print("\n=== SYSTEM BEREIT ===")
         print("'b' druecken = Leeres Board speichern (Background)")
         print("'t' druecken = Auswertung starten (Throw) nach einem Wurf")
-        print("Klicke auf Linie = Kamera an/ausschalten")
-        print("'1', '2', '3' = Kamera 0, 1, 2 als Notfall-Schalter an/ausschalten")
+        print("Kameras im Web-Dashboard ein-/ausschalten")
         print("'q' druecken = Beenden und in Ruhezustand wechseln")
 
-        cv2.namedWindow("Live View")
-        cv2.namedWindow("Result (Top Down)")
-        cv2.namedWindow("SAM2 Segmentierung Debug")
-        cv2.namedWindow("Homografie Entzerrung")
-        cv2.setMouseCallback("Result (Top Down)", on_mouse_click_result)
+        global_app_state['lines_data'] = []
+        global_app_state['board_img'] = np.zeros((SIZE, SIZE, 3), dtype=np.uint8)
 
         backgrounds = {}
         base_colors = [(255, 0, 0), (0, 255, 0), (255, 255, 0)]
-        update_result_board()
+        update_result_board_global()
 
         # Aktive Kamera-Schleife, läuft solange system_active = True ist
+        debug_frames = []  # Einmalig vor der Schleife leeren
+
         while system_active:
             frames = {}
             display_frames = []
@@ -549,34 +615,43 @@ def main():
 
                     if cid in matrices:
                         warped = cv2.warpPerspective(frame, matrices[cid], (SIZE, SIZE))
+                        # Optional: Text ins Bild malen
                         cv2.putText(warped, f"Kam {cid} Homografie", (20, 40),
                                     cv2.FONT_HERSHEY_SIMPLEX, 0.8, (0, 255, 0), 2)
                         warped_frames.append(cv2.resize(warped, (400, 400)))
 
+            # --- BILDER AN DAS WEB-DASHBOARD SENDEN ---
             if display_frames:
-                cv2.imshow("Live View", np.hstack(display_frames))
-                cv2.imshow("Result (Top Down)", app_state['board_img'])
+                dashboard_frames["live"] = np.hstack(display_frames)
+                dashboard_frames["result"] = global_app_state['board_img']
 
             if warped_frames:
-                cv2.imshow("Homografie Entzerrung", np.hstack(warped_frames))
+                dashboard_frames["homography"] = np.hstack(warped_frames)
 
+            if debug_frames:
+                dashboard_frames["debug"] = np.hstack(debug_frames)
+
+            # --- TASTATUR & WEB-BUTTON ABFRAGE ---
             key = cv2.waitKey(1) & 0xFF
 
             if key == ord('q'):
-                system_active = False  # Bricht die innere Schleife ab und geht in den Ruhezustand
+                system_active = False
                 break
 
-            elif key == ord('b'):
+            elif key == ord('b') or trigger_background:
                 backgrounds = frames.copy()
                 print("Backgrounds gespeichert! Bereit fuer Wuerfe.")
+                trigger_background = False  # Sofort zurücksetzen
 
-            elif key == ord('t'):
+            elif key == ord('t') or trigger_throw:
+                trigger_throw = False  # Sofort zurücksetzen
+
                 if not backgrounds:
-                    print("FEHLER: Zuerst mit 'b' ein leeres Board speichern!")
+                    print("FEHLER: Zuerst ein leeres Board speichern!")
                     continue
 
                 print("\nAnalysiere Wurf...")
-                app_state['lines_data'] = []
+                global_app_state['lines_data'] = []
                 debug_frames = []
                 c_idx = 0
 
@@ -587,7 +662,7 @@ def main():
                         )
                         if line_pts:
                             print(f"Kamera {cid}: Achse gefunden.")
-                            app_state['lines_data'].append({
+                            global_app_state['lines_data'].append({
                                 'cid': cid,
                                 'p1': line_pts[0],
                                 'p2': line_pts[1],
@@ -600,21 +675,20 @@ def main():
                         debug_frames.append(cv2.resize(debug_img, (400, 300)))
                     c_idx += 1
 
-                if debug_frames:
-                    cv2.imshow("SAM2 Segmentierung Debug", np.hstack(debug_frames))
-
-                update_result_board()
+                # NEU: Das ist ein echter Wurf -> Kein Korrektur-Flag
+                update_result_board_global(is_correction=False)
 
             elif key in [ord('1'), ord('2'), ord('3')]:
                 cam_idx = key - ord('1')
                 if cam_idx < len(caps):
                     target_cid = caps[cam_idx][0]
-                    for line in app_state['lines_data']:
+                    for line in global_app_state['lines_data']:
                         if line['cid'] == target_cid:
                             line['active'] = not line['active']
                             status = "DEAKTIVIERT" if not line['active'] else "AKTIVIERT"
                             print(f"Kamera {target_cid} per Tastatur {status}")
-                            update_result_board()
+
+                            update_result_board_global(is_correction=True)
                             break
 
         # Cleanup Kameras (wird ausgeführt, wenn 'q' gedrückt oder das Stop-Signal empfangen wurde)
