@@ -4,6 +4,7 @@ import os
 import torch
 import requests
 import threading
+import time
 from flask import Flask, jsonify, Response, render_template
 from sam2.build_sam import build_sam2
 from sam2.sam2_image_predictor import SAM2ImagePredictor
@@ -34,6 +35,50 @@ CHECKPOINT = os.path.join(BASE_DIR, "sam_checkpoints", "sam2.1_hiera_large.pt")
 # config datein ist in der datei die heruntergeladen wurde
 MODEL_CFG = "configs/sam2.1/sam2.1_hiera_l.yaml"
 # durch den 3 zeilen habe ich den pfad sodass ich dann später das sam2 Model laden kann
+
+# --- NEU: GESCHWINDIGKEIT ---
+# Größe des SAM2-Modells. Kleinere Modelle sind auf der CPU deutlich schneller:
+# "large" (am genauesten, am langsamsten) | "base_plus" | "small" | "tiny" (am schnellsten)
+# Die passende .pt-Datei muss im Ordner sam_checkpoints liegen, sonst wird automatisch "large" verwendet.
+SAM2_MODEL_SIZE = "small"
+SAM2_MODELS = {
+    "large": ("sam2.1_hiera_large.pt", "configs/sam2.1/sam2.1_hiera_l.yaml"),
+    "base_plus": ("sam2.1_hiera_base_plus.pt", "configs/sam2.1/sam2.1_hiera_b+.yaml"),
+    "small": ("sam2.1_hiera_small.pt", "configs/sam2.1/sam2.1_hiera_s.yaml"),
+    "tiny": ("sam2.1_hiera_tiny.pt", "configs/sam2.1/sam2.1_hiera_t.yaml"),
+}
+_ckpt_name, _ckpt_cfg = SAM2_MODELS.get(SAM2_MODEL_SIZE, SAM2_MODELS["large"])
+_ckpt_path = os.path.join(BASE_DIR, "sam_checkpoints", _ckpt_name)
+if os.path.exists(_ckpt_path):
+    CHECKPOINT, MODEL_CFG = _ckpt_path, _ckpt_cfg
+else:
+    print(f"⚠️ {_ckpt_name} nicht gefunden – verwende sam2.1_hiera_large.pt")
+    SAM2_MODEL_SIZE = "large"
+
+# Schnellmodus: Ist der Differenz-Fleck eindeutig länglich (= Pfeil), wird die Achse direkt
+# aus dem Differenzbild berechnet und SAM2 übersprungen (Millisekunden statt Sekunden).
+# Nur bei unklaren Bildern (Hand, großer Schatten, mehrere Flecken) wird SAM2 als Rückfallebene genutzt.
+USE_FAST_MODE = True
+FAST_MIN_ELONGATION = 15.0  # Wie länglich der Fleck mindestens sein muss (Pfeil: sehr länglich, Hand/Schatten: rundlich)
+FAST_MIN_AREA = 150  # Mindestgröße des Flecks in Pixeln (kleiner = nur Rauschen)
+FAST_MIN_SHARE = 0.6  # Anteil des größten Flecks an allen Differenz-Pixeln (darunter = unklares Bild)
+
+# --- NEU: AUTOMATIK-MODUS (Ruhe -> Bewegung -> Ruhe) ---
+# Ablauf: Solange die Scheibe ruhig ist, wird laufend der Hintergrund übernommen.
+# Wird eine Bewegung erkannt, wartet das System, bis wieder Ruhe ist, und vergleicht dann mit dem Hintergrund:
+#   kleine Veränderung + kurze Bewegung = Pfeil -> automatisch auswerten
+#   große Veränderung oder lange Bewegung = Hand / Pfeile ziehen -> kein Wurf, nur neuer Hintergrund
+# Alle Werte beziehen sich auf ein verkleinertes Graubild (AUTO_ANALYSIS_SIZE) und werden als Anteil der Pixel angegeben.
+AUTO_ANALYSIS_SIZE = (320, 240)  # Auf diese Größe wird für die Bewegungserkennung verkleinert (schneller)
+AUTO_MOTION_PIXEL_THRESHOLD = 25  # Grauwert-Unterschied zwischen zwei Frames, ab dem ein Pixel als "bewegt" zählt
+AUTO_MOTION_MIN_RATIO = 0.002  # Anteil bewegter Pixel (0.2 %), ab dem es als Bewegung gilt
+AUTO_STABLE_TIME = 0.7  # Sekunden ohne Bewegung = Bild ist ruhig (Pfeil zittert nicht mehr)
+AUTO_CHANGE_PIXEL_THRESHOLD = 35  # Grauwert-Unterschied zum Hintergrund, ab dem ein Pixel als "verändert" zählt
+AUTO_CHANGE_MIN_RATIO = 0.0015  # Mindest-Veränderung zum Hintergrund für einen Pfeil (darunter = nichts passiert)
+AUTO_CHANGE_MAX_RATIO = 0.08  # Mehr Veränderung als 8 % = Hand / Person / Pfeile entfernt -> kein Wurf
+AUTO_MAX_THROW_MOTION = 1.5  # Bewegung länger als 1,5 s = jemand an der Scheibe (z.B. Pfeile ziehen) -> kein Wurf
+AUTO_BG_REFRESH_TIME = 2.0  # Alle 2 s Ruhe wird geprüft und der Hintergrund aufgefrischt (z.B. Lichtänderung)
+AUTO_SETTLE_TIME = 2.0  # Nach einer großen Veränderung (Pfeile ziehen) erst nach 2 s völliger Ruhe wieder Würfe werten
 
 # Ziel-Koordinaten für die Homographie (Double-Ring)
 # ZIEL-SCHABLONE FÜR DIE ENTZERRUNG:
@@ -89,6 +134,11 @@ def stop_cameras():
 @app.route('/api/camera/toggle/<int:cid>', methods=['POST'])
 def toggle_camera_web(cid):
     """ Ermöglicht das Umschalten einer Kamera direkt über das Web-Dashboard """
+    # Gesperrt: Kein Kamerawurf vorhanden (z.B. nach manuellem Klick im Browser oder neuem Hintergrund)
+    if len(global_app_state['lines_data']) == 0:
+        print(f"Kamera {cid} kann nicht umgeschaltet werden: Kameras gesperrt bis zum nächsten Wurf.")
+        return jsonify({"status": "locked", "cid": cid, "found": False})
+
     found = False
     for line in global_app_state['lines_data']:
         if line['cid'] == cid:
@@ -98,17 +148,65 @@ def toggle_camera_web(cid):
             found = True
             break
 
-    update_result_board_global(is_correction=True)
+    # Nur neu berechnen, wenn sich wirklich etwas geändert hat (Kamera ohne erkannte Linie -> keine Korrektur)
+    if found:
+        update_result_board_global(is_correction=True)
     return jsonify({"status": "success", "cid": cid, "found": found})
+
+
+@app.route('/api/camera/states')
+def camera_states():
+    """ Liefert dem Web-Dashboard den aktuellen Zustand der Kamera-Buttons """
+    # has_throw = False -> Buttons gesperrt (kein Kamerawurf oder manueller Eingriff)
+    # cams: {"0": True/False, ...} -> nur Kameras, die beim letzten Wurf eine Linie erkannt haben
+    cams = {}
+    for line in global_app_state['lines_data']:
+        cams[str(line['cid'])] = line['active']
+    return jsonify({
+        "has_throw": len(global_app_state['lines_data']) > 0,
+        "cams": cams
+    })
 
 
 trigger_background = False
 trigger_throw = False
 
+# NEU: Automatik-Modus (False = Manuell mit Buttons, True = Automatisch per Bewegungserkennung)
+auto_mode = False
+auto_status = "Manueller Modus"  # Text für die Statusanzeige im Dashboard
+
+
+def set_auto_status(text):
+    """ Setzt den Statustext, den das Dashboard im Automatik-Modus anzeigt """
+    global auto_status
+    auto_status = text
+
+
+@app.route('/api/mode')
+def get_mode():
+    """ Liefert dem Dashboard den aktuellen Modus und Status """
+    status = auto_status if system_active else "Kameras nicht gestartet"
+    return jsonify({"mode": "auto" if auto_mode else "manual", "status": status})
+
+
+@app.route('/api/mode/<mode>', methods=['POST'])
+def set_mode(mode):
+    """ Schaltet zwischen Manuell und Automatisch um """
+    global auto_mode
+    if mode not in ("auto", "manual"):
+        return jsonify({"status": "unbekannter Modus"}), 400
+    auto_mode = (mode == "auto")
+    set_auto_status("Warte auf ruhiges Bild ..." if auto_mode else "Manueller Modus")
+    print(f"\n⚙️ MODUS: {'AUTOMATISCH' if auto_mode else 'MANUELL'}")
+    return jsonify({"mode": mode})
+
 
 @app.route('/api/action/background')
 def web_background():
     global trigger_background
+    # NEU: Im Automatik-Modus wird der Hintergrund automatisch gesetzt
+    if auto_mode:
+        return jsonify({"status": "Automatik aktiv - Button ignoriert"})
     trigger_background = True
     return jsonify({"status": "Background angefordert"})
 
@@ -116,6 +214,9 @@ def web_background():
 @app.route('/api/action/throw')
 def web_throw():
     global trigger_throw
+    # NEU: Im Automatik-Modus wird der Wurf automatisch ausgewertet
+    if auto_mode:
+        return jsonify({"status": "Automatik aktiv - Button ignoriert"})
     trigger_throw = True
     return jsonify({"status": "Wurfauswertung gestartet"})
 
@@ -414,6 +515,39 @@ def process_camera_dart(img_ref, img_new, H, predictor, cid=0):
     principal_axis = eigvecs[:, -1]
     projections = centered @ principal_axis
 
+    # --- NEU: SCHNELLMODUS (ohne SAM2) ---
+    # Wenn der größte Differenz-Fleck klar länglich ist, ist das mit hoher Sicherheit der Pfeil.
+    # Dann reicht die Hauptachse aus dem Differenzbild -> SAM2 (mehrere Sekunden) wird übersprungen.
+    if USE_FAST_MODE:
+        diff_area = len(coords_diff)
+        total_diff = int(np.count_nonzero(thresh))
+        ev_diff = np.linalg.eigvalsh(cov)
+        elongation = ev_diff[-1] / max(ev_diff[0], 1e-3)
+        share = diff_area / max(total_diff, 1)
+
+        if diff_area >= FAST_MIN_AREA and elongation >= FAST_MIN_ELONGATION and share >= FAST_MIN_SHARE:
+            idx_min, idx_max = np.argmin(projections), np.argmax(projections)
+            y1, x1 = coords_diff[idx_min]
+            y2, x2 = coords_diff[idx_max]
+            x1, y1, x2, y2 = int(x1), int(y1), int(x2), int(y2)
+
+            # Differenz-Fleck türkis einfärben, Achse und Endpunkte einzeichnen
+            overlay = debug_img.copy()
+            overlay[labels == largest_label] = (255, 255, 0)
+            debug_img = cv2.addWeighted(overlay, 0.4, debug_img, 0.6, 0)
+            cv2.line(debug_img, (x1, y1), (x2, y2), (0, 255, 255), 2)
+            cv2.circle(debug_img, (x1, y1), 5, (255, 0, 255), -1)
+            cv2.circle(debug_img, (x2, y2), 5, (255, 0, 255), -1)
+            cv2.putText(debug_img, f"Kam {cid}: Schnellmodus", (10, 30), cv2.FONT_HERSHEY_SIMPLEX, 0.7,
+                        (255, 255, 0), 2)
+
+            print(f"Kamera {cid}: Schnellmodus (Laenglichkeit {elongation:.0f}, Anteil {share:.0%})")
+            pt1_warp = transform_point((x1, y1), H)
+            pt2_warp = transform_point((x2, y2), H)
+            return (pt1_warp, pt2_warp), debug_img
+
+        print(f"Kamera {cid}: Differenz unklar (Laenglichkeit {elongation:.1f}, Anteil {share:.0%}) -> SAM2")
+
     positive_points = []
     for p in (20, 50, 80):
         target = np.percentile(projections, p)
@@ -501,6 +635,21 @@ def process_camera_dart(img_ref, img_new, H, predictor, cid=0):
     pt2_warp = transform_point((x2, y2), H)
 
     return (pt1_warp, pt2_warp), debug_img
+
+
+# ---------------- NEU: AUTOMATIK-MODUS HILFSFUNKTIONEN ----------------
+def auto_small_gray(frame):
+    """ Verkleinert ein Kamerabild und macht es grau + leicht unscharf (für schnelle Bewegungserkennung) """
+    small = cv2.resize(frame, AUTO_ANALYSIS_SIZE)
+    gray = cv2.cvtColor(small, cv2.COLOR_BGR2GRAY)
+    return cv2.GaussianBlur(gray, (5, 5), 0)
+
+
+def auto_changed_ratio(gray_a, gray_b, pixel_threshold):
+    """ Anteil der Pixel (0.0 - 1.0), die sich zwischen zwei Graubildern stärker als pixel_threshold unterscheiden """
+    diff = cv2.absdiff(gray_a, gray_b)
+    _, th = cv2.threshold(diff, pixel_threshold, 255, cv2.THRESH_BINARY)
+    return cv2.countNonZero(th) / th.size
 
 
 # ---------------- 5. KALIBRIERUNG ----------------
@@ -602,6 +751,18 @@ def main():
         # Aktive Kamera-Schleife, läuft solange system_active = True ist
         debug_frames = []  # Einmalig vor der Schleife leeren
 
+        # NEU: Zustand für den Automatik-Modus
+        auto_bg = None  # Hintergrund vor dem nächsten Wurf (pro Kamera)
+        auto_prev_gray = {}  # Letztes Graubild pro Kamera (für die Bewegungserkennung)
+        auto_motion_active = False  # Läuft gerade eine Bewegung?
+        auto_motion_start = 0.0  # Wann hat die Bewegung begonnen?
+        auto_last_motion = time.time()  # Wann war zuletzt Bewegung?
+        auto_last_check = time.time()  # Wann wurde zuletzt mit dem Hintergrund verglichen?
+        auto_was_active = False  # War der Automatik-Modus im letzten Durchlauf schon aktiv?
+        auto_settling = False  # Nach großer Veränderung: warten, bis die Scheibe wieder frei und ruhig ist
+        if auto_mode:
+            set_auto_status("Warte auf ruhiges Bild ...")
+
         while system_active:
             frames = {}
             display_frames = []
@@ -631,6 +792,104 @@ def main():
             if debug_frames:
                 dashboard_frames["debug"] = np.hstack(debug_frames)
 
+            # --- NEU: AUTOMATIK-MODUS (Ruhe -> Bewegung -> Ruhe) ---
+            if auto_mode and frames:
+                now = time.time()
+
+                # Gerade auf Automatisch umgeschaltet -> Zustand neu beginnen
+                if not auto_was_active:
+                    auto_bg = None
+                    auto_prev_gray = {}
+                    auto_motion_active = False
+                    auto_last_motion = now
+                    auto_last_check = now
+                    auto_settling = False
+                    auto_was_active = True
+                    set_auto_status("Warte auf ruhiges Bild ...")
+
+                # 1. Bewegung erkennen: aktuelles Bild mit dem vorherigen Bild jeder Kamera vergleichen
+                gray_now = {cid: auto_small_gray(f) for cid, f in frames.items()}
+                motion_ratio = 0.0
+                for cid, g in gray_now.items():
+                    if cid in auto_prev_gray:
+                        motion_ratio = max(motion_ratio,
+                                           auto_changed_ratio(auto_prev_gray[cid], g, AUTO_MOTION_PIXEL_THRESHOLD))
+                auto_prev_gray = gray_now
+
+                if motion_ratio >= AUTO_MOTION_MIN_RATIO:
+                    auto_last_motion = now
+                    if not auto_motion_active:
+                        auto_motion_active = True
+                        auto_motion_start = now
+                        set_auto_status("🟡 Bewegung erkannt ...")
+
+                # 2. Ist das Bild wieder ruhig?
+                stable = (now - auto_last_motion) >= AUTO_STABLE_TIME
+
+                if stable and auto_bg is None:
+                    # Erster ruhiger Moment -> Starthintergrund übernehmen
+                    auto_bg = frames.copy()
+                    auto_motion_active = False
+                    auto_last_check = now
+                    print("AUTO: Hintergrund gespeichert. Bereit fuer Wuerfe.")
+                    set_auto_status("🟢 Bereit – warte auf Wurf")
+
+                elif stable and auto_settling:
+                    # Nach großer Veränderung: nur den Hintergrund nachführen (kein Wurf),
+                    # bis die Scheibe lange genug völlig ruhig ist (Person ist wieder weg)
+                    auto_bg = frames.copy()
+                    auto_motion_active = False
+                    if now - auto_last_motion >= AUTO_SETTLE_TIME:
+                        auto_settling = False
+                        auto_last_check = now
+                        print("AUTO: Scheibe wieder ruhig. Bereit fuer Wuerfe.")
+                        set_auto_status("🟢 Bereit – warte auf Wurf")
+
+                elif stable and auto_bg is not None and (
+                        auto_motion_active or now - auto_last_check >= AUTO_BG_REFRESH_TIME):
+                    # 3. Ruhiges Bild mit dem Hintergrund vergleichen und entscheiden, was passiert ist
+                    motion_duration = (auto_last_motion - auto_motion_start) if auto_motion_active else 0.0
+                    change_ratio = 0.0
+                    for cid, g in gray_now.items():
+                        if cid in auto_bg:
+                            change_ratio = max(change_ratio,
+                                               auto_changed_ratio(auto_small_gray(auto_bg[cid]), g,
+                                                                  AUTO_CHANGE_PIXEL_THRESHOLD))
+
+                    if change_ratio < AUTO_CHANGE_MIN_RATIO:
+                        # Nichts Relevantes verändert (z.B. Schatten, leichte Lichtänderung) -> Hintergrund auffrischen
+                        if auto_motion_active:
+                            print(f"AUTO: Bewegung ohne Veraenderung (Aenderung {change_ratio:.2%}) -> kein Wurf")
+                        auto_bg = frames.copy()
+                        set_auto_status("🟢 Bereit – warte auf Wurf")
+
+                    elif change_ratio > AUTO_CHANGE_MAX_RATIO or motion_duration > AUTO_MAX_THROW_MOTION:
+                        # Große Veränderung oder lange Bewegung -> Hand / Person / Pfeile entfernt -> kein Wurf
+                        print(f"AUTO: Grosse Veraenderung (Aenderung {change_ratio:.2%}, "
+                              f"Bewegung {motion_duration:.1f} s) -> kein Wurf, neuer Hintergrund")
+                        auto_bg = frames.copy()
+                        # Alte Kameralinien verwerfen (wie beim manuellen Hintergrund speichern)
+                        global_app_state['lines_data'] = []
+                        update_result_board_global(is_correction=False)
+                        auto_settling = True  # Erst wieder werten, wenn die Scheibe frei und ruhig ist
+                        set_auto_status("⚪ Große Veränderung (z.B. Pfeile entfernt) – warte bis Scheibe frei ist")
+
+                    else:
+                        # Kleine Veränderung nach kurzer Bewegung -> Pfeil -> automatisch auswerten
+                        print(f"AUTO: Wurf erkannt (Aenderung {change_ratio:.2%}, "
+                              f"Bewegung {motion_duration:.1f} s) -> Auswertung")
+                        backgrounds = auto_bg  # Hintergrund VOR dem Wurf für die Auswertung
+                        auto_bg = frames.copy()  # Bild MIT Pfeil = Hintergrund für den nächsten Pfeil
+                        trigger_throw = True  # Löst unten die normale Wurfauswertung aus
+                        set_auto_status("🔵 Werte Wurf aus ...")
+
+                    auto_motion_active = False
+                    auto_last_check = now
+
+            elif not auto_mode and auto_was_active:
+                # Zurück auf Manuell -> beim nächsten Einschalten frisch beginnen
+                auto_was_active = False
+
             # --- TASTATUR & WEB-BUTTON ABFRAGE ---
             key = cv2.waitKey(1) & 0xFF
 
@@ -643,6 +902,12 @@ def main():
                 print("Backgrounds gespeichert! Bereit fuer Wuerfe.")
                 trigger_background = False  # Sofort zurücksetzen
 
+                # Neuer Hintergrund = vorheriger Wurf ist abgeschlossen.
+                # Alte Kameralinien verwerfen, damit kein alter Wurf mehr korrigiert werden kann
+                # und beim nächsten Wurf alle Kameras wieder aktiv starten.
+                global_app_state['lines_data'] = []
+                update_result_board_global(is_correction=False)
+
             elif key == ord('t') or trigger_throw:
                 trigger_throw = False  # Sofort zurücksetzen
 
@@ -654,12 +919,15 @@ def main():
                 global_app_state['lines_data'] = []
                 debug_frames = []
                 c_idx = 0
+                t_total = time.perf_counter()  # NEU: Zeitmessung für den ganzen Wurf
 
                 for cid in frames:
                     if cid in matrices and cid in backgrounds:
+                        t_cam = time.perf_counter()  # NEU: Zeitmessung pro Kamera
                         line_pts, debug_img = process_camera_dart(
                             backgrounds[cid], frames[cid], matrices[cid], predictor, cid=cid
                         )
+                        print(f"⏱️ Kamera {cid}: {time.perf_counter() - t_cam:.2f} s")
                         if line_pts:
                             print(f"Kamera {cid}: Achse gefunden.")
                             global_app_state['lines_data'].append({
@@ -675,8 +943,14 @@ def main():
                         debug_frames.append(cv2.resize(debug_img, (400, 300)))
                     c_idx += 1
 
+                print(f"⏱️ Auswertung gesamt: {time.perf_counter() - t_total:.2f} s (SAM2-Modell: {SAM2_MODEL_SIZE})")
+
                 # NEU: Das ist ein echter Wurf -> Kein Korrektur-Flag
                 update_result_board_global(is_correction=False)
+
+                # NEU: Im Automatik-Modus wieder auf den nächsten Pfeil warten
+                if auto_mode:
+                    set_auto_status("🟢 Bereit – warte auf Wurf")
 
             elif key in [ord('1'), ord('2'), ord('3')]:
                 cam_idx = key - ord('1')
