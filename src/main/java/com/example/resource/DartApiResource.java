@@ -33,7 +33,7 @@ public class DartApiResource {
             if (payload.isCorrection) {
                 System.out.println("🔄 Korrektur empfangen! Mache letzten Wurf rückgängig...");
                 UUID tempPlayerId = dartService.getMatch().getGameState().getCurrentplayerId();
-                dartService.deleteLastThrow(tempPlayerId);
+                dartService.deleteLastThrow();
             }
 
             UUID currentPlayerId = dartService.getMatch().getGameState().getCurrentplayerId();

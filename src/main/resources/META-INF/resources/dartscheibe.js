@@ -8,7 +8,7 @@ const endMatchButton = document.querySelector('.end-match-button');
 // "Rückgängig" funktioniert jetzt auch über Leg-Grenzen und nach dem Siegwurf –
 // gesperrt nur, wenn noch gar kein Wurf existiert
 const noThrowsYet = document.getElementById('dartboard').dataset.historyEmpty === 'true';
-const isNewLegStarted = document.querySelector('li.active').getAttribute('data-new-leg') === 'true';
+
 
 if (noThrowsYet) {
     resetButton.disabled = true;
