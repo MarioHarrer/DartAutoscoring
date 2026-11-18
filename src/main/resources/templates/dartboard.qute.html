@@ -2,6 +2,7 @@
 <html lang="de">
 <head>
     <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>Dartboard</title>
     <style>
         *{
@@ -218,28 +219,11 @@
             padding: 1rem;
         }
 
-        .match-info{
-            flex: 1;
-        }
-        .match-info > p{
-            font-size: 1.3rem;
-            margin: 1.5rem;
-            padding: 1rem;
-            background-color: white;
-            border-radius: 8px;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.05);
-        }
-
         .dartboard-section{
             flex: 1.5;
             display: flex;
             flex-direction: column;
             align-items: center;
-        }
-
-        .players-list li{
-            margin-top: 0.5rem;
-            padding: 0.75rem;
         }
 
         .control-buttons {
@@ -291,53 +275,6 @@
              margin: 0.5rem 0
          }
 
-        .team-display {
-            width: 100%;
-            margin-top: 1rem;
-        }
-
-        .team {
-            background-color: #f8f9fa;
-            border-radius: 8px;
-            padding: 1rem;
-            margin-bottom: 1rem;
-        }
-
-        .team h3 {
-            color: #333;
-            margin-bottom: 1rem;
-            font-size: 1.2rem;
-            border-bottom: 2px solid #dee2e6;
-            padding-bottom: 0.5rem;
-        }
-
-        .team-1 {
-            border-left: 4px solid red;
-        }
-
-        .team-2 {
-            border-left: 4px solid green;
-        }
-
-        .team li {
-            margin: 0.5rem 0;
-        }
-
-        .team-display .team > h3 {
-            font-size: 1.8rem;
-            margin: 1rem 0;
-            padding: 0.5rem;
-            color: #333;
-            border-bottom: 3px solid #dee2e6;
-        }
-
-
-        .team-stats {
-            font-size: 1.2rem;
-            color: #666;
-            margin-left: 1rem;
-        }
-
         .camera-button {
             background-color: #28a745;
         }
@@ -347,6 +284,201 @@
         }
 
 
+
+
+        /* ===== Match-Ansicht: linke Seite (Scoreboard) ===== */
+        .match-container { align-items: flex-start; }
+        .match-info {
+            flex: 1;
+            min-width: 320px;
+            max-width: 560px;
+            display: flex;
+            flex-direction: column;
+            gap: 1rem;
+            position: sticky;
+            top: 1rem;
+        }
+        .match-header {
+            background: #1d1d1f;
+            color: #fff;
+            border-radius: 12px;
+            padding: 1rem 1.25rem;
+        }
+        .match-title { font-size: 1.6rem; font-weight: 700; letter-spacing: .02em; }
+        .chips { display: flex; flex-wrap: wrap; gap: .4rem; margin-top: .6rem; }
+        .chip {
+            font-size: .85rem; padding: .25rem .65rem; border-radius: 999px;
+            background: rgba(255,255,255,.14); color: #e8e8e8;
+        }
+        .chip-leg { background: #2e9e4f; color: #fff; font-weight: 600; }
+
+        .scoreboard { display: flex; flex-direction: column; gap: .75rem; }
+        .player-card {
+            background: #fff;
+            border: 1px solid #e3e3e3;
+            border-left: 6px solid #d0d0d0;
+            border-radius: 12px;
+            padding: .9rem 1.25rem;
+            transition: transform .15s, box-shadow .15s;
+        }
+        .player-card.active {
+            border-left-color: #2e9e4f;
+            background: #f1faf3;
+            box-shadow: 0 6px 18px rgba(46,158,79,.18);
+            transform: scale(1.02);
+        }
+        .pc-top { display: flex; justify-content: space-between; align-items: center; }
+        .pc-name { font-size: 1.25rem; font-weight: 600; text-align: left; }
+        .badge {
+            font-size: .72rem; font-weight: 700; text-transform: uppercase;
+            background: #2e9e4f; color: #fff; border-radius: 999px;
+            padding: .15rem .55rem; margin-left: .4rem; vertical-align: middle;
+        }
+        .pc-score {
+            font-size: clamp(3rem, 5vw, 4.5rem);
+            font-weight: 800; line-height: 1.05;
+            font-variant-numeric: tabular-nums;
+            color: #1d1d1f; text-align: left;
+        }
+        .player-card:not(.active) .pc-score { color: #6b6b6b; }
+        .pc-score small { font-size: 1rem; font-weight: 600; color: #888; margin-right: .4rem; }
+        .pc-stats {
+            display: flex; gap: 1.25rem; align-items: center;
+            font-size: .95rem; color: #666; margin-top: .25rem;
+        }
+        .pc-stats b { color: #1d1d1f; }
+
+        /* Gewonnene Legs als Punkte */
+        .pc-legs i, .darts-left i {
+            display: inline-block; width: 12px; height: 12px; border-radius: 50%;
+            border: 2px solid #bbb; margin-left: 4px;
+        }
+        .pc-legs i.on { background: #e0b100; border-color: #e0b100; }
+        /* Verbleibende Würfe */
+        .darts-left { margin-left: auto; }
+        .darts-left i { width: 10px; height: 22px; border-radius: 5px; }
+        .darts-left i.on { background: #2e9e4f; border-color: #2e9e4f; }
+
+        /* ATC Fortschritt */
+        .atc-progress { height: 8px; background: #e6e6e6; border-radius: 4px; margin: .4rem 0 .2rem; overflow: hidden; }
+        .atc-progress div { height: 100%; background: #2e9e4f; border-radius: 4px; }
+
+        /* Team */
+        .team-red { border-left-color: #d33; }
+        .team-green { border-left-color: #2e9e4f; }
+        .team-card.team-red.active { border-left-color: #d33; background: #fff6f6; box-shadow: 0 6px 18px rgba(221,51,51,.15); }
+        .members { list-style: none; margin: .4rem 0 0; padding: 0; border: none; background: none; max-width: none; }
+        .members li {
+            display: flex; align-items: center; gap: .6rem;
+            background: none; margin: 0; padding: .4rem 0; text-align: left;
+            font-size: 1rem; border-top: 1px solid #eee; border-radius: 0;
+        }
+        .members li span { color: #888; font-size: .9rem; }
+        .members li.is-active { font-weight: 700; }
+        .members li.is-active::before { content: "▶"; color: #d33; font-size: .8rem; }
+        .team-green .members li.is-active::before { color: #2e9e4f; }
+
+        /* ===== Match-Ansicht: alles auf eine Bildschirmhöhe ===== */
+        /* Platz, der neben der Scheibe vertikal gebraucht wird: Titel, Abstände, Buttons */
+        body.in-match {
+            --chrome-height: 10rem;
+            justify-content: flex-start;
+            padding: .5rem 1rem;
+        }
+        body.in-match > h1 {
+            font-size: 1.5rem;
+            margin: .25rem 0 .5rem;
+        }
+        body.in-match .match-container {
+            padding: 0 1rem;
+            align-items: flex-start;
+        }
+        /* Scheibe ist quadratisch: Breite nie größer als die verfügbare Höhe */
+        body.in-match #dartboard {
+            width: 100%;
+            max-width: min(1000px, calc(100dvh - var(--chrome-height)));
+            aspect-ratio: 1 / 1;
+        }
+        body.in-match .control-buttons { margin-top: .75rem; gap: .6rem; }
+        body.in-match .miss-button,
+        body.in-match .reset-button,
+        body.in-match .camera-button,
+        body.in-match .end-match-button {
+            width: auto; margin-top: 0; padding: .7rem 1.1rem;
+            font-size: 1rem; font-weight: bold; white-space: nowrap;
+        }
+        /* Gewinner-Meldung schwebt über dem Spielfeld statt unter der Seite */
+        body.in-match .gewinner-Alert {
+            position: fixed;
+            left: 50%;
+            top: .5rem;
+            margin: 0;
+            transform: translateX(-50%);
+            width: auto;
+            max-width: 90vw;
+            white-space: nowrap;
+            padding: 1rem 2rem;
+            font-size: 1.4rem;
+            z-index: 50;
+            box-shadow: 0 8px 24px rgba(0,0,0,.15);
+        }
+
+        /* ===== Handy / schmale Bildschirme: Scheibe oben, Stände darunter ===== */
+        @media (max-width: 900px) {
+            body.in-match {
+                --chrome-height: 8rem;
+                padding: .5rem;
+            }
+            body.in-match > h1 { font-size: 1.2rem; margin: .1rem 0 .4rem; }
+            body.in-match .match-container {
+                flex-direction: column;
+                gap: 1rem;
+                padding: 0;
+            }
+            body.in-match .dartboard-section {
+                order: -1;
+                width: 100%;
+            }
+            body.in-match .match-info {
+                position: static;
+                width: 100%;
+                min-width: 0;
+                max-width: none;
+            }
+            body.in-match .control-buttons {
+                display: grid;
+                grid-template-columns: 1fr 1fr;
+                gap: .5rem;
+                width: 100%;
+            }
+            body.in-match .control-buttons .game-button {
+                width: 100%;
+                padding: .75rem .5rem;
+                font-size: 1rem;
+            }
+            body.in-match .end-match-form { margin: 0; padding: 0; }
+            /* Spieler-Karten nebeneinander, damit weniger gescrollt werden muss */
+            body.in-match .scoreboard {
+                display: grid;
+                grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+                gap: .5rem;
+            }
+            body.in-match .player-card { padding: .6rem .8rem; }
+            body.in-match .player-card.active { transform: none; }
+            /* Team-Karten haben die Mitspieler-Liste: volle Breite */
+            body.in-match .team-card { grid-column: 1 / -1; }
+            body.in-match .darts-left { flex-shrink: 0; white-space: nowrap; }
+            body.in-match .pc-top { flex-wrap: wrap; gap: .25rem; }
+            body.in-match .pc-name { font-size: 1.05rem; white-space: nowrap; }
+            body.in-match .badge { font-size: .6rem; padding: .1rem .4rem; margin-left: .25rem; }
+            body.in-match .pc-legs { white-space: nowrap; }
+            body.in-match .pc-legs i { width: 10px; height: 10px; margin-left: 3px; }
+            body.in-match .control-buttons .game-button { white-space: normal; }
+            body.in-match .pc-score { font-size: 2.6rem; }
+            body.in-match .pc-stats { gap: .75rem; font-size: .85rem; flex-wrap: wrap; }
+            body.in-match .match-header { padding: .7rem 1rem; }
+            body.in-match .match-title { font-size: 1.25rem; }
+        }
 
 
         @media (max-width: 600px){
@@ -379,7 +511,7 @@
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 
 </head>
-<body>
+<body class="{#if match??}in-match{/if}">
 
 <h1>Dartboard</h1>
 
@@ -480,18 +612,19 @@
                                 <option value ="FIRST_TO">First to</option>
                             </select>
                         </div>
-                        <div class ="mode-setting">
-                            <h4>Anzahl Runden</h4>
-                            <input type ="text" name="rounds" min="1" required>
-                        </div>
+
                     </div>
                 </div>
             </div>
 
             <div id="clockConfig" class="modeConfig" style="display: none;">
                 <h3>Around the Clock Einstellungen</h3>
-            </div>
 
+            </div>
+            <div class ="mode-setting">
+                <h4>Anzahl Runden</h4>
+                <input type ="text" name="rounds" min="1" required>
+            </div>
 
             <button type="submit" id="startMatchButton">Match starten</button>
         </div>
@@ -505,69 +638,77 @@
     <div class="match-container">
         <!-- Linke Hälfte -->
         <div class="match-info">
-            <h2>Aktives Match</h2>
-            <p>Modus: {match.mode.type}</p>
-            <p startmode="{match.mode.startMode}">Startmodus: {match.mode.startMode}</p>
-            <p endmode="{match.mode.endMode}">Endmodus: {match.mode.endMode}</p>
-            <p>Spieltyp: {match.matchConfig.gameType}</p>
-            <p>Legs: {match.matchConfig.targetvalue}</p>
-            <hr>
-            <p>Aktueller Spieler: {playerMap.get(match.gameState.currentplayerId).name}</p>
-            <p>Verbleibende Würfe: {match.gameState.throwsleft}</p>
-            <ul class="players-list">
+            <!-- Match-Kopf: Modus + Einstellungen kompakt -->
+            <div class="match-header">
+                <div class="match-title">{match.modeLabel}{#if match.isTeamMode} · Team{/if}</div>
+                <div class="chips">
+                    {#for chip in match.modeChips}
+                        <span class="chip">{chip}</span>
+                    {/for}
+                    <span class="chip chip-leg">Leg {match.currentLeg}</span>
+                </div>
+            </div>
+
+            <div class="scoreboard">
                 {#if match.isTeamMode}
-                    <div class="team-display">
-                        <div class="team team-1">
-                            <h3>TEAM 1 <span class="team-stats">- Punktestand: <span class="score">{match.getScore(match.playerIds.get(0))}</span>
-            - Gewonne Legs: <span class="score">{match.getWonLegs(match.playerIds.get(0))}</span></span></h3>
-                            <li class="{match.playerIds.get(0) == match.gameState.currentplayerId ? 'active' : ''}"
-                                data-new-leg="{match.gameState.newLegStarted}">
-                                {playerMap.get(match.playerIds.get(0)).name}
-                                – Average: <span class="score">{match.getPlayerAverage(match.playerIds.get(0))}</span>
-                                – Gesamt Würfe: <span class="score">{match.getThrows(match.playerIds.get(0))}</span>
-                            </li>
-                            <li class="{match.playerIds.get(1) == match.gameState.currentplayerId ? 'active' : ''}"
-                                data-new-leg="{match.gameState.newLegStarted}">
-                                {playerMap.get(match.playerIds.get(1)).name}
-                                – Average: <span class="score">{match.getPlayerAverage(match.playerIds.get(1))}</span>
-                                – Gesamt Würfe: <span class="score">{match.getThrows(match.playerIds.get(1))}</span>
-                            </li>
+                    {#for team in match.teams}
+                        {#let leader=team.get(0) teamActive=team.contains(match.gameState.currentplayerId)}
+                        <div class="player-card team-card {#if team_isFirst}team-red{#else}team-green{/if}{#if teamActive} active{/if}">
+                            <div class="pc-top">
+                                <span class="pc-name">Team {team_count}{#if teamActive} <span class="badge">am Wurf</span>{/if}</span>
+                                <span class="pc-legs" title="Gewonnene Legs: {match.getWonLegs(leader)}">{#for i in match.legsToWin}<i class="{#if i <= match.getWonLegs(leader)}on{/if}"></i>{/for}</span>
+                            </div>
+                            <div class="pc-score">{#if match.isAroundTheClock()}<small>Ziel</small>{/if}{match.getScoreLabel(leader)}</div>
+                            {#if match.isAroundTheClock()}
+                                <div class="atc-progress"><div style="width: {match.getAtcProgress(leader)}%"></div></div>
+                            {/if}
+                            <ul class="members">
+                                {#for member in team}
+                                    <li class="{#if member == match.gameState.currentplayerId}is-active{/if}">
+                                        {playerMap.get(member).name}
+                                        <span>{#if match.isAroundTheClock()}Treffer {match.getHitRate(member)} %{#else}Ø {match.getPlayerAverage(member)}{/if} · {match.getThrows(member)} Würfe</span>
+                                        {#if member == match.gameState.currentplayerId}
+                                            <span class="darts-left" title="Verbleibende Würfe: {match.gameState.throwsleft}">{#for i in 3}<i class="{#if i <= match.gameState.throwsleft}on{/if}"></i>{/for}</span>
+                                        {/if}
+                                    </li>
+                                {/for}
+                            </ul>
                         </div>
-                        <div class="team team-2">
-                            <h3>TEAM 2 <span class="team-stats">- Punktestand: <span class="score">{match.getScore(match.playerIds.get(2))}</span>
-            - Gewonne Legs: <span class="score">{match.getWonLegs(match.playerIds.get(2))}</span></span></h3>
-                            <li class="{match.playerIds.get(2) == match.gameState.currentplayerId ? 'active' : ''}"
-                                data-new-leg="{match.gameState.newLegStarted}">
-                                {playerMap.get(match.playerIds.get(2)).name}
-                                – Average: <span class="score">{match.getPlayerAverage(match.playerIds.get(2))}</span>
-                                – Gesamt Würfe: <span class="score">{match.getThrows(match.playerIds.get(2))}</span>
-                            </li>
-                            <li class="{match.playerIds.get(3) == match.gameState.currentplayerId ? 'active' : ''}"
-                                data-new-leg="{match.gameState.newLegStarted}">
-                                {playerMap.get(match.playerIds.get(3)).name}
-                                – Average: <span class="score">{match.getPlayerAverage(match.playerIds.get(3))}</span>
-                                – Gesamt Würfe: <span class="score">{match.getThrows(match.playerIds.get(3))}</span>
-                            </li>
-                        </div>
-                    </div>
+                        {/let}
+                    {/for}
                 {#else}
                     {#for playerId in match.playerIds}
-                        <li class="{playerId == match.gameState.currentplayerId ? 'active' : ''}"
-                            data-new-leg="{match.gameState.newLegStarted}">
-                            {playerMap.get(playerId).name}
-                            – Punktestand: <span class="score">{match.getScore(playerId)}</span>
-                            – Average: <span class="score">{match.getPlayerAverage(playerId)}</span>
-                            – Gesamt Würfe: <span class="score">{match.getThrows(playerId)}</span>
-                            – Gewonne Legs: <span class="score">{match.getWonLegs(playerId)}</span>
-                        </li>
+                        {#let isActive=(playerId == match.gameState.currentplayerId)}
+                        <div class="player-card{#if isActive} active{/if}">
+                            <div class="pc-top">
+                                <span class="pc-name">{playerMap.get(playerId).name}{#if isActive} <span class="badge">am Wurf</span>{/if}</span>
+                                <span class="pc-legs" title="Gewonnene Legs: {match.getWonLegs(playerId)}">{#for i in match.legsToWin}<i class="{#if i <= match.getWonLegs(playerId)}on{/if}"></i>{/for}</span>
+                            </div>
+                            <div class="pc-score">{#if match.isAroundTheClock()}<small>Ziel</small>{/if}{match.getScoreLabel(playerId)}</div>
+                            {#if match.isAroundTheClock()}
+                                <div class="atc-progress"><div style="width: {match.getAtcProgress(playerId)}%"></div></div>
+                            {/if}
+                            <div class="pc-stats">
+                                {#if match.isAroundTheClock()}
+                                    <span>Treffer <b>{match.getHitRate(playerId)} %</b></span>
+                                {#else}
+                                    <span>Ø <b>{match.getPlayerAverage(playerId)}</b></span>
+                                {/if}
+                                <span>Würfe <b>{match.getThrows(playerId)}</b></span>
+                                {#if isActive}
+                                    <span class="darts-left" title="Verbleibende Würfe: {match.gameState.throwsleft}">{#for i in 3}<i class="{#if i <= match.gameState.throwsleft}on{/if}"></i>{/for}</span>
+                                {/if}
+                            </div>
+                        </div>
+                        {/let}
                     {/for}
                 {/if}
-            </ul>
+            </div>
         </div>
 
         <!-- Rechte Hälfte -->
         <div class="dartboard-section">
-            <svg id="dartboard" viewBox="-250 -250 500 500"></svg>
+            <svg id="dartboard" viewBox="-222 -222 444 444" data-mode="{match.mode.type}" data-history-empty="{match.history.isEmpty()}"></svg>
             <div class="control-buttons">
                 <button type="button" id="missButton" class="game-button miss-button">Fehlwurf</button>
                 <button type="button" id="resetButton" class="game-button reset-button">Letzten Wurf rückgängig</button>

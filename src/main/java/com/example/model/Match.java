@@ -16,10 +16,14 @@ public class Match {
     private final Map<UUID, Integer> scores = new HashMap<>();
     private final LocalDateTime startedAt = LocalDateTime.now();
     private final GameState gameState;
-    private final Map<UUID, List<Integer>> playerThrows = new HashMap<>();
+    private final Map<UUID, List<ThrowResult>> playerThrows = new HashMap<>();
     private final MatchConfig matchConfig;
     private final Map<UUID, Integer> wonLegs = new HashMap<>();
     private final boolean isTeamMode;
+    private final GameModeStrategy strategy;
+
+    // Zustand vor jedem Wurf, damit "Rückgängig" exakt zurücksetzen kann (auch über Leg-Grenzen)
+    private final Deque<ThrowSnapshot> history = new ArrayDeque<>();
 
 
     private final Map<UUID, UUID> playerTeamMap = new HashMap<>(); // Speichert die Team-Zuordnung
@@ -30,6 +34,7 @@ public class Match {
         this.matchConfig = matchConfig;
         this.gameState = new GameState(playerIds, isTeamMode);
         this.isTeamMode = isTeamMode;
+        this.strategy = GameModeStrategy.forType(mode.getType());
 
         if (isTeamMode && playerIds.size() == 4) {
             // Team 1: Spieler 0 und 1
@@ -41,7 +46,7 @@ public class Match {
             playerTeamMap.put(playerIds.get(3), playerIds.get(2));
         }
 
-        int startScore = (mode.getType() == MatchModeType.MODE_501) ? 501 : 0;
+        int startScore = strategy.getInitialScore();
 
         for (UUID playerId : playerIds) {
             scores.put(playerId, startScore);
@@ -55,6 +60,79 @@ public class Match {
             return scores.get(playerTeamMap.get(playerId));
         }
         return scores.get(playerId);
+    }
+
+    // ===== Hilfsmethoden für die Anzeige im Template =====
+
+    public boolean isAroundTheClock() {
+        return mode.getType() == MatchModeType.MODE_AROUND_THE_CLOCK;
+    }
+
+    public String getModeLabel() {
+        return isAroundTheClock() ? "Around the Clock" : "501";
+    }
+
+    // Kleine Info-Kennzeichen unter dem Modus, z.B. "Straight In", "Double Out", "First to 3"
+    public List<String> getModeChips() {
+        List<String> chips = new ArrayList<>();
+        if (!isAroundTheClock()) {
+            chips.add(enumLabel(mode.getStartMode().name()));
+            chips.add(enumLabel(mode.getEndMode().name()));
+        }
+        if (matchConfig != null) {
+            String type = matchConfig.getGameType() == GameType.BEST_OF ? "Best of " : "First to ";
+            chips.add(type + matchConfig.getTargetvalue());
+        }
+        return chips;
+    }
+
+    // STRAIGHT_IN -> "Straight In"
+    private static String enumLabel(String name) {
+        StringBuilder sb = new StringBuilder();
+        for (String part : name.split("_")) {
+            if (sb.length() > 0) sb.append(' ');
+            sb.append(part.charAt(0)).append(part.substring(1).toLowerCase());
+        }
+        return sb.toString();
+    }
+
+    // Team 1 = Spieler 0+1, Team 2 = Spieler 2+3 (erster Spieler ist der Team-Leader)
+    public List<List<UUID>> getTeams() {
+        if (!isTeamMode || playerIds.size() != 4) {
+            return List.of();
+        }
+        return List.of(playerIds.subList(0, 2), playerIds.subList(2, 4));
+    }
+
+    public int getCurrentLeg() {
+        return gameState.getLegCounter() + 1;
+    }
+
+    // Anzahl Legs, die zum Matchgewinn nötig sind (für die Leg-Punkte)
+    public int getLegsToWin() {
+        if (matchConfig == null || matchConfig.getTargetvalue() <= 0) {
+            return 1;
+        }
+        if (matchConfig.getGameType() == GameType.BEST_OF) {
+            return matchConfig.getTargetvalue() / 2 + 1;
+        }
+        return matchConfig.getTargetvalue();
+    }
+
+    // ATC-Fortschritt in Prozent: Ziel 1 = 0 %, Bull = 20/21, Leg gewonnen = 100 %
+    public int getAtcProgress(UUID playerId) {
+        int target = getScore(playerId);
+        int done = target == ModeATCStrategy.BULL ? ModeATCStrategy.LAST_NUMBER : target - 1;
+        return (int) Math.round(done * 100.0 / (ModeATCStrategy.LAST_NUMBER + 1));
+    }
+
+    // Punktestand bzw. Ziel-Zahl für die Anzeige (ATC: "Bull" statt 25)
+    public String getScoreLabel(UUID playerId) {
+        int score = getScore(playerId);
+        if (mode.getType() == MatchModeType.MODE_AROUND_THE_CLOCK) {
+            return ModeATCStrategy.targetLabel(score);
+        }
+        return String.valueOf(score);
     }
 
     public void setScore(UUID playerId, int score) {
@@ -98,7 +176,7 @@ public class Match {
 
 
     public double getPlayerAverage(UUID playerId) {
-        List<Integer> shoots = this.playerThrows.get(playerId);
+        List<ThrowResult> shoots = this.playerThrows.get(playerId);
         if (shoots.isEmpty()) {
             return 0.0;
         }
@@ -108,7 +186,7 @@ public class Match {
 
         for (int i = 0; i < roundsof3 * 3; i++) {
             if (shoots.get(i) != null) {
-                total += shoots.get(i);
+                total += shoots.get(i).getScore();
             }
         }
 
@@ -119,6 +197,50 @@ public class Match {
 
     public int getThrows(UUID playerId){
         return playerThrows.get(playerId).size();
+    }
+
+    // Trefferquote in Prozent (für Around the Clock)
+    public int getHitRate(UUID playerId) {
+        long throwsCount = history.stream().filter(s -> s.getPlayerId().equals(playerId)).count();
+        if (throwsCount == 0) {
+            return 0;
+        }
+        long hits = history.stream().filter(s -> s.getPlayerId().equals(playerId) && s.isHit()).count();
+        return (int) Math.round(hits * 100.0 / throwsCount);
+    }
+
+    // Merkt sich den Zustand vor dem Wurf und speichert den Wurf
+    public ThrowSnapshot recordThrow(UUID playerId, ThrowResult throwResult) {
+        ThrowSnapshot snapshot = new ThrowSnapshot(playerId, throwResult, this);
+        history.addLast(snapshot);
+        playerThrows.get(playerId).add(throwResult);
+        return snapshot;
+    }
+
+    // Setzt den Spielzustand auf den Stand vor dem letzten Wurf zurück
+    public boolean undoLastThrow() {
+        ThrowSnapshot snapshot = history.pollLast();
+        if (snapshot == null) {
+            return false;
+        }
+
+        List<ThrowResult> throwsOfPlayer = playerThrows.get(snapshot.getPlayerId());
+        if (!throwsOfPlayer.isEmpty()) {
+            throwsOfPlayer.remove(throwsOfPlayer.size() - 1);
+        }
+
+        scores.clear();
+        scores.putAll(snapshot.getScores());
+        wonLegs.clear();
+        wonLegs.putAll(snapshot.getWonLegs());
+
+        gameState.setCurrentplayerId(snapshot.getCurrentplayerId());
+        gameState.setCurrentplayerIndex(snapshot.getCurrentplayerIndex());
+        gameState.setThrowsleft(snapshot.getThrowsleft());
+        gameState.setLegCounter(snapshot.getLegCounter());
+        gameState.setGameover(snapshot.isGameover());
+        gameState.setNewLegStarted(snapshot.isNewLegStarted());
+        return true;
     }
 
     public boolean isDraw(){
