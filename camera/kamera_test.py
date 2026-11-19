@@ -945,7 +945,7 @@ def main():
 
                 print(f"⏱️ Auswertung gesamt: {time.perf_counter() - t_total:.2f} s (SAM2-Modell: {SAM2_MODEL_SIZE})")
 
-                # NEU: Das ist ein echter Wurf -> Kein Korrektur-Flag
+                # NEU: Das ist ein echter Wurf -> Kein Korrektur-Flag   
                 update_result_board_global(is_correction=False)
 
                 # NEU: Im Automatik-Modus wieder auf den nächsten Pfeil warten
